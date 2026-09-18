@@ -1,0 +1,179 @@
+{
+  "members": [
+    {
+      "member_id": "M001",
+      "name": "Karthik",
+      "seat_id": "S001",
+      "camera_id": "CAM001",
+      "mic_id": "MIC001",
+      "allocated_time_seconds": 300,
+      "status": "ACTIVE",
+      "constituency": "General Constituency",
+      "party": "Independent",
+      "role": "Member of Parliament",
+      "department": "None / General Member",
+      "contact_info": "parl.m001@sansad.nic.in",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "password": "Karthik143",
+      "password_hash": "scrypt:f773dc54d65073f29928a1511d4f8e99:8c31e9b9abea2b85d3d59beaa68a2d4c8c7bfbcab8ed6b238558ce65b7f87b91eacf0b90505d0477acc3008241654dfe07fc46777fdd65ccaa8452b1aa400cf2",
+      "historical_score": 92,
+      "warnings_count": 1,
+      "violations_count": 44,
+      "created_at": "2026-09-16T04:58:44.716Z",
+      "updated_at": "2026-09-16T17:02:25.347Z"
+    },
+    {
+      "member_id": "SP001",
+      "name": "Kashyap",
+      "seat_id": "S002",
+      "camera_id": "CAM002",
+      "mic_id": "MIC002",
+      "allocated_time_seconds": 300,
+      "status": "ACTIVE",
+      "constituency": "Mys",
+      "party": "National Democratic Front",
+      "role": "Speaker",
+      "department": "Speaker's Office",
+      "contact_info": "parl.sp001@sansad.nic.in",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "password": "Kashyap143",
+      "password_hash": "scrypt:eb0aa28fac8cdb952d146310ddb9503a:a33eecfbae3160b6bedfdfdf1f2af4277170bc8ae8a99ae6de072cd85258468707da10303fea724b9d3e51246e6de4a69e3cfb59d0c0cbc0df98393504e775fc",
+      "historical_score": 90,
+      "warnings_count": 0,
+      "violations_count": 1,
+      "created_at": "2026-09-16T05:50:08.316Z",
+      "updated_at": "2026-09-16T11:09:03.990Z"
+    }
+  ],
+  "config": {
+    "session_id": "PAR-2026-001",
+    "session_date": "2026-09-16",
+    "start_time": "10:00 AM",
+    "scheduled_end_time": "05:00 PM",
+    "session_type": "Regular Legislative Sitting",
+    "house_chamber": "Lok Sabha / Main Chamber",
+    "current_topic": "Digital Education & AI Governance Bill 2026",
+    "topics": [
+      {
+        "topic_id": "TOPIC-01",
+        "title": "Digital Education Infrastructure & Rural Lab Allocation",
+        "description": "Discussion on clauses 1-14 regarding digital laboratories across 50,000 rural schools.",
+        "start_time": "10:00 AM",
+        "end_time": "11:30 AM",
+        "priority": "HIGH",
+        "speeches_count": 8,
+        "avg_relevance": 91.5,
+        "violations_count": 1
+      },
+      {
+        "topic_id": "TOPIC-02",
+        "title": "Data Sovereignty, Biometric Privacy & AI Ethics",
+        "description": "Clauses 15-28 regarding algorithmic auditing, biometric encryption, and data security.",
+        "start_time": "11:30 AM",
+        "end_time": "01:00 PM",
+        "priority": "HIGH",
+        "speeches_count": 6,
+        "avg_relevance": 89.2,
+        "violations_count": 2
+      },
+      {
+        "topic_id": "TOPIC-03",
+        "title": "Teacher Training Grants & EdTech Budget Appropriations",
+        "description": "Clauses 29-45 for statutory allocations to state pedagogical institutes.",
+        "start_time": "02:00 PM",
+        "end_time": "04:30 PM",
+        "priority": "MEDIUM",
+        "speeches_count": 4,
+        "avg_relevance": 86,
+        "violations_count": 0
+      }
+    ],
+    "timings": {
+      "session_start_time": "10:00 AM",
+      "session_end_time": "05:00 PM",
+      "max_speaking_time_seconds": 300,
+      "warning_time_seconds": 240,
+      "break_periods": "01:00 PM - 02:00 PM (Lunch Break)",
+      "total_expected_duration": "7 Hours"
+    },
+    "rules": {
+      "max_speaking_time_seconds": 300,
+      "warning_time_seconds": 240,
+      "noise_threshold_db": 78,
+      "agenda_relevance_threshold": 45,
+      "multiple_speaker_threshold_ms": 500,
+      "seat_compliance_enabled": true,
+      "offensive_language_detection": true,
+      "movement_rules_enabled": true,
+      "rules_list": [
+        {
+          "id": "RULE_1_SPEAKING_TIME",
+          "name": "Speaking Time Exceeded",
+          "description": "Enforces 5-minute floor cap with 4-minute warning.",
+          "severity": "LOW",
+          "penalty_points": 5,
+          "enabled": true
+        },
+        {
+          "id": "RULE_2_HIGH_NOISE",
+          "name": "Acoustic Decibel Threshold",
+          "description": "Triggers alert when ambient chamber noise exceeds configured threshold.",
+          "severity": "HIGH",
+          "penalty_points": 10,
+          "enabled": true
+        },
+        {
+          "id": "RULE_3_OFF_TOPIC",
+          "name": "Agenda Relevance Analysis",
+          "description": "NLP similarity comparison against active session topic.",
+          "severity": "MEDIUM",
+          "penalty_points": 8,
+          "enabled": true
+        },
+        {
+          "id": "RULE_4_HEATED_DEBATE",
+          "name": "Floor Agitation & Tone",
+          "description": "Linguistic and acoustic sentiment classification.",
+          "severity": "MEDIUM",
+          "penalty_points": 6,
+          "enabled": true
+        },
+        {
+          "id": "RULE_5_OFFENSIVE_LANGUAGE",
+          "name": "Unparliamentary Lexicon",
+          "description": "Automated flagging of banned unparliamentary terms.",
+          "severity": "CRITICAL",
+          "penalty_points": 15,
+          "enabled": true
+        },
+        {
+          "id": "RULE_6_MULTIPLE_SPEAKERS",
+          "name": "Simultaneous Floor Cross-Talk",
+          "description": "Detection of simultaneous microphone activity.",
+          "severity": "HIGH",
+          "penalty_points": 10,
+          "enabled": true
+        },
+        {
+          "id": "RULE_7_UNAUTHORIZED_MOVEMENT",
+          "name": "Seat Zone Compliance",
+          "description": "Computer vision detection of member displacement or well-rush.",
+          "severity": "HIGH",
+          "penalty_points": 12,
+          "enabled": true
+        },
+        {
+          "id": "RULE_8_EMERGENCY_BUTTON",
+          "name": "Presiding Emergency Protocol",
+          "description": "Manual physical console or UI emergency dispatch.",
+          "severity": "CRITICAL",
+          "penalty_points": 25,
+          "enabled": true
+        }
+      ]
+    },
+    "status": "LIVE",
+    "is_locked": true
+  },
+  "saved_at": "2026-09-16T17:03:33.578Z"
+}
