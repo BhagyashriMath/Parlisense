@@ -165,7 +165,7 @@ export function normalizeSessionReport(raw: any): SessionReport {
 
   const sessId = raw.session_information?.session_id || raw.session_id || "PARL-2026-8002";
   const rawDate = raw.session_information?.date || raw.session_date || new Date().toISOString().slice(0, 10);
-  const presiding = raw.session_information?.presiding_officer || raw.presiding_officer || "Hon. Speaker KARTHIK S KASHYAP";
+  const presiding = raw.session_information?.presiding_officer || raw.presiding_officer || "Hon. Speaker";
   const bill = raw.session_information?.agenda_bill || raw.session_title || "Digital Education & AI Governance Bill 2026";
 
   const rawMembers = Array.isArray(raw.member_scorecards) ? raw.member_scorecards : [];
@@ -319,6 +319,7 @@ export async function fetchSessionReport(): Promise<SessionReport> {
     const sessId = current?.session_id || summary?.session_information?.session_id || "PARL-2026-8002";
     const bill = current?.current_bill || "Digital Education & AI Governance Bill 2026";
     const members = membersRes.members || [];
+    const speaker = members.find((member: any) => member.role?.toLowerCase() === "speaker");
 
     const rawReport = {
       report_id: `REP-PARL-${sessId}`,
@@ -330,7 +331,7 @@ export async function fetchSessionReport(): Promise<SessionReport> {
         end_time: summary?.session_information?.end_time || new Date().toLocaleTimeString(),
         duration: current?.session_duration_formatted || summary?.session_information?.total_duration || "00:45:00",
         agenda_bill: bill,
-        presiding_officer: "Honourable Speaker KARTHIK S KASHYAP"
+        presiding_officer: speaker?.name ? `Honourable Speaker ${speaker.name}` : "Honourable Speaker"
       },
       session_statistics: {
         total_members_registered: members.length || 12,

@@ -16,7 +16,7 @@ declare global {
  * 2. Session headers: "x-session-role", "x-member-id"
  * 3. Query parameter: "?token=<token>"
  */
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   // 1. Check Bearer Token
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -42,14 +42,11 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   const headerMemberId = req.headers["x-member-id"] as string;
   if (headerRole) {
     const roleClean = headerRole.toLowerCase() as "admin" | "speaker" | "member";
-    const user: AuthUser = {
-      id: headerMemberId || (roleClean === "speaker" ? "SP001" : roleClean === "admin" ? "USR-ADM-001" : "M001"),
-      username: headerMemberId || roleClean,
-      name: roleClean === "speaker" ? "KARTHIK S KASHYAP" : roleClean === "admin" ? "Parliament Administrator" : "Sumith KS",
-      role: roleClean
-    };
-    req.user = user;
-    return next();
+    const memberId = headerMemberId || (roleClean === "speaker" ? "SP001" : roleClean === "member" ? "M001" : "USR-ADM-001");
+    const user = await authService.getUserById(memberId);
+    if (user && user.role === roleClean) {
+      req.user = user;
+    }
   }
 
   // Pass through if unauthenticated (controllers/route guards can enforce requireAuth)
