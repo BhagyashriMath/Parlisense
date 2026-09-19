@@ -35,7 +35,7 @@ export function SessionReportModal() {
     end_time: new Date().toLocaleTimeString(),
     duration: (activeReport as any).total_duration || "0m",
     agenda_bill: (activeReport as any).session_title || (activeReport as any).agenda_bill || "Digital Education & AI Governance Bill 2026",
-    presiding_officer: (activeReport as any).presiding_officer || "Hon. Speaker KARTHIK S KASHYAP"
+    presiding_officer: (activeReport as any).presiding_officer || "Hon. Speaker"
   };
 
   const stats = activeReport.session_statistics || {

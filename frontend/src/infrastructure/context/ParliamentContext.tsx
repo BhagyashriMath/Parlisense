@@ -463,11 +463,14 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (role: "admin" | "speaker" | "member", memberId?: string, displayName?: string) => {
-    const mem = memberId ? members.find((m) => m.member_id === memberId) : undefined;
+    const resolvedMemberId = memberId || (role === "speaker"
+      ? members.find((member) => member.role?.toLowerCase() === "speaker")?.member_id
+      : role === "member" ? (members[0]?.member_id || "M001") : undefined);
+    const mem = resolvedMemberId ? members.find((m) => m.member_id === resolvedMemberId) : undefined;
     const session: UserSession = {
       role,
-      memberId: memberId || (role === "member" ? (members[0]?.member_id || "M001") : undefined),
-      memberName: mem?.name || displayName || (role === "admin" ? "Parliament Administrator" : role === "speaker" ? "Hon. Speaker" : undefined),
+      memberId: resolvedMemberId,
+      memberName: mem?.name || displayName || (role === "admin" ? "Parliament Administrator" : undefined),
       seatId: mem?.seat_id,
       loginTime: new Date().toLocaleTimeString()
     };

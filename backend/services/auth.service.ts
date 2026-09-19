@@ -88,8 +88,11 @@ export class AuthService {
     if (idClean.toUpperCase() === "SP001" || idClean.toLowerCase() === "speaker") {
       const allMembers = await memberRepository.findAllMembers();
       const speakerMember = (await memberRepository.findById("SP001")) ||
-        allMembers.find(m => m.role?.toLowerCase() === "speaker") ||
-        allMembers.find(m => m.name.toLowerCase().includes("karthik"));
+        allMembers.find(m => m.role?.toLowerCase() === "speaker");
+
+      if (!speakerMember) {
+        return { success: false, error: "Speaker account is not configured." };
+      }
 
       const isSpeakerPwd = pwdClean === "Karthik143" ||
         (speakerMember && this.verifyPassword(pwdClean, speakerMember.password || "Karthik143"));
@@ -98,7 +101,7 @@ export class AuthService {
         const user: AuthUser = {
           id: speakerMember?.member_id || "SP001",
           username: "SP001",
-          name: speakerMember?.name || "KARTHIK S KASHYAP",
+          name: speakerMember.name,
           role: "speaker",
           seat_id: speakerMember?.seat_id || "S001",
           mic_id: speakerMember?.mic_id || "MIC001",

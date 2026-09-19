@@ -139,6 +139,8 @@ export class ScorecardRepository {
     const { members } = await memberRepository.findAll();
     // The presiding officer chairs the chamber and is never scored.
     const scoredMembers = members.filter((m: any) => !this.isPresidingOfficer(m));
+    const speaker = members.find((m: any) => this.isPresidingOfficer(m));
+    const presidingOfficer = speaker?.name ? `Hon. Speaker ${speaker.name}` : "Hon. Speaker";
     const scorecards = (await Promise.all(scoredMembers.map(m => this.getMemberScorecard(m.member_id)))).filter((sc: any) => !!sc);
     const transcripts = await db.all<any>("SELECT * FROM transcripts WHERE session_id = ?", [sessionId]);
     const alerts = await db.all<any>("SELECT * FROM alerts WHERE session_id = ?", [sessionId]);
@@ -163,7 +165,7 @@ export class ScorecardRepository {
       session_title: topicTitle,
       generated_at: new Date().toISOString(),
       certified_at: new Date().toISOString(),
-      presiding_officer: "Hon. Speaker KARTHIK S KASHYAP",
+      presiding_officer: presidingOfficer,
       total_members_participating: scoredMembers.length,
       chamber_decorum_score: 93.4,
       total_speeches_delivered: transcripts.length,
@@ -174,7 +176,7 @@ export class ScorecardRepository {
         end_time: new Date().toLocaleTimeString(),
         duration: "1h 45m",
         agenda_bill: topicTitle,
-        presiding_officer: "Hon. Speaker KARTHIK S KASHYAP"
+        presiding_officer: presidingOfficer
       },
       session_statistics: {
         total_members_registered: scoredMembers.length,
