@@ -212,8 +212,8 @@ export class SessionService {
   }
 
   async startSession(): Promise<{ status: string; session_id: string; is_locked: boolean }> {
-    if (!this.config.session_id || this.config.status === "ENDED") {
-      this.config.session_id = `PAR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+    if (!this.config.session_id || !["SCHEDULED", "LIVE", "PAUSED"].includes(this.config.status)) {
+      this.config.session_id = `PAR-${new Date().getFullYear()}-${Date.now()}`;
     }
     if (!this.config.current_topic) {
       this.config.current_topic = "Digital Education & AI Governance Framework Bill 2026";

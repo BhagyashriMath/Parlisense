@@ -22,7 +22,7 @@ test('telemetry resolves database arrays before REST/stream serialization', asyn
     '../repositories/transcript.repository': 'export const transcriptRepository = { getCachedRecent: () => [] };',
     '../repositories/emergency.repository': 'export const emergencyRepository = { findAll: async () => [{ id: "emergency-1" }] };',
     '../repositories/notification.repository': 'export const notificationRepository = { getAll: async () => [{ id: "notification-1" }] };',
-    '../config': 'export const rulesConfig = {};'
+    '../config': 'export const rulesConfig = {}; export const DATA_DIR = ""; export const RUNTIME_STATE_PATH = "";'
   };
   const result = await build({
     entryPoints: [path.join(__dirname, '../services/telemetry.service.ts')],
@@ -41,7 +41,7 @@ test('telemetry resolves database arrays before REST/stream serialization', asyn
   });
   const module = { exports: {} };
   vm.runInNewContext(result.outputFiles[0].text, {
-    module, exports: module.exports, console,
+    module, exports: module.exports, require, console,
     setInterval: () => 1, clearInterval: () => {}
   });
   const service = module.exports.telemetryService;

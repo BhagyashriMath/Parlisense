@@ -15,12 +15,16 @@ export class AiService {
   private readonly agendaModel = this.loadTextModel("agenda_model.json");
 
   private loadTextModel(fileName: string): TextModelArtifact | null {
-    try {
-      const filePath = path.join(process.cwd(), "ml", "models", fileName);
-      return JSON.parse(fs.readFileSync(filePath, "utf8")) as TextModelArtifact;
-    } catch (_) {
-      return null;
+    const modelPaths = [
+      path.join(process.cwd(), "ml", "models", fileName),
+      path.join(process.cwd(), "..", "ml", "models", fileName)
+    ];
+    for (const filePath of modelPaths) {
+      try {
+        return JSON.parse(fs.readFileSync(filePath, "utf8")) as TextModelArtifact;
+      } catch (_) {}
     }
+    return null;
   }
 
   private predictModel(model: TextModelArtifact | null, text: string): Record<string, number> {
@@ -98,10 +102,15 @@ export class AiService {
   analyzeOffensive(text: string): { isOffensive: boolean; flaggedWords: string[] } {
     const lower = (text || "").toLowerCase();
     const offensiveList = [
-      "idiot", "moron", "bastard", "corrupt thief", "thief", "scoundrel",
-      "liar", "shut up", "clown", "traitor", "bloody fool"
+      "idiot", "idiotic", "stupid", "moron", "bastard", "corrupt thief", "thief",
+      "scoundrel", "liar", "lies", "lie", "shut up", "clown", "traitor", "bloody fool",
+      "shameful", "corrupt", "corruption", "cheat", "scam", "fraud", "disgrace",
+      "rubbish", "bribe", "criminal", "fool", "nonsense"
     ];
-    const flagged = offensiveList.filter((term) => new RegExp(`\\b${term}\\b`, "i").test(lower));
+    const flagged = offensiveList.filter((term) => {
+      const pattern = term.split(/\s+/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+      return new RegExp(`\\b${pattern}\\b`, "i").test(lower);
+    });
     const modelProbability = this.predictModel(this.offensiveModel, text).offensive || 0;
     return { isOffensive: flagged.length > 0 || modelProbability >= 0.65, flaggedWords: flagged };
   }

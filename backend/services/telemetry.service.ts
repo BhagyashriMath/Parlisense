@@ -293,7 +293,7 @@ export class TelemetryService {
       this.state.seatMovementStates = aiService.simulateSeats(this.state.forcedEvent, this.state.seatMovementStates);
     }
 
-    const recentTranscripts = transcriptRepository.getCachedRecent(8);
+    const recentTranscripts = transcriptRepository.getCachedRecent(8, this.state.sessionId);
     const latestTranscriptText = recentTranscripts.length > 0
       ? recentTranscripts[recentTranscripts.length - 1].text
       : "Honourable Speaker, the digital education mission requires immediate budgetary allocation.";

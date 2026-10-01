@@ -4,8 +4,11 @@ import { TranscriptEntity } from "../models";
 export class TranscriptRepository {
   private recentCache: TranscriptEntity[] = [];
 
-  public getCachedRecent(limit = 10): TranscriptEntity[] {
-    return this.recentCache.slice(-limit);
+  public getCachedRecent(limit = 10, sessionId?: string): TranscriptEntity[] {
+    const transcripts = sessionId
+      ? this.recentCache.filter((transcript) => transcript.session_id === sessionId)
+      : this.recentCache;
+    return transcripts.slice(-limit);
   }
 
   public async findAll(options: { sessionId?: string; memberId?: string; limit?: number } = {}): Promise<TranscriptEntity[]> {
