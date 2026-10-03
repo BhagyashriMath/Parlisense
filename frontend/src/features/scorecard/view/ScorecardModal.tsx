@@ -237,6 +237,10 @@ export function ScorecardModal() {
                         <span className="text-[11px]">Excessive Acoustic Noise</span>
                         <span className="font-mono font-bold text-rose-400">-{neg.excessive_noise_deduction} pts</span>
                       </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-[11px]">Other Rule Violations</span>
+                        <span className="font-mono font-bold text-rose-400">-{neg.rule_violations_deduction} pts</span>
+                      </div>
                     </div>
                   </div>
 

@@ -29,7 +29,14 @@ export class ScorecardRepository {
       : `SELECT payload FROM scorecards WHERE member_id = ? ORDER BY created_at DESC LIMIT 1`;
     const params = sessionId ? [memberId, sessionId] : [memberId];
     const row = await db.get<{ payload: string }>(sql, params);
-    if (row) return JSON.parse(row.payload);
+    if (row) {
+      const scorecard = JSON.parse(row.payload);
+      const deductions = scorecard.negative_deductions;
+      if (deductions && deductions.total_negative_deductions == null) {
+        deductions.total_negative_deductions = deductions.total_penalties_deduction ?? 0;
+      }
+      return scorecard;
+    }
 
     return this.getMemberScorecard(memberId);
   }
@@ -58,6 +65,30 @@ export class ScorecardRepository {
     const decorumBonus = Math.max(0, 15 - events.length);
     const positive = agendaPoints + constructivePoints + discussionPoints + decorumBonus;
     const penalties = events.reduce((sum, e) => sum + (Number(e.penalty_points) || 0), 0);
+    const deductionCategories: Record<string, string> = {
+      SPEAKING_TIME: "speaking_time_overage_deduction",
+      SPEAKING_TIME_WARNING: "speaking_time_overage_deduction",
+      OFF_TOPIC_SPEECH: "off_topic_speech_deduction",
+      INTERRUPTION: "interruptions_cross_talk_deduction",
+      UNAUTHORIZED_MOVEMENT: "disruptive_movement_deduction",
+      OFFENSIVE_LANGUAGE: "offensive_language_deduction",
+      HIGH_NOISE: "excessive_noise_deduction",
+      NOISE_WARNING: "excessive_noise_deduction"
+    };
+    const negativeDeductions: Record<string, number> = {
+      speaking_time_overage_deduction: 0,
+      off_topic_speech_deduction: 0,
+      interruptions_cross_talk_deduction: 0,
+      disruptive_movement_deduction: 0,
+      offensive_language_deduction: 0,
+      excessive_noise_deduction: 0,
+      rule_violations_deduction: 0,
+      total_negative_deductions: penalties
+    };
+    for (const event of events) {
+      const key = deductionCategories[event.category] || "rule_violations_deduction";
+      negativeDeductions[key] += Number(event.penalty_points) || 0;
+    }
     const score = Math.max(0, positive - penalties);
     return {
       member_id: memberId,
@@ -83,16 +114,7 @@ export class ScorecardRepository {
         decorum_conduct_bonus: decorumBonus,
         total_positive_marks: positive
       },
-      negative_deductions: {
-        speaking_time_overage_deduction: 0,
-        off_topic_speech_deduction: 0,
-        interruptions_cross_talk_deduction: 0,
-        disruptive_movement_deduction: 0,
-        offensive_language_deduction: 0,
-        excessive_noise_deduction: events.filter((e) => e.category === "HIGH_NOISE").reduce((s, e) => s + (Number(e.penalty_points) || 0), 0),
-        rule_violations_deduction: penalties,
-        total_penalties_deduction: penalties
-      },
+      negative_deductions: negativeDeductions,
       statistics: {
         speaking_time_seconds: 0,
         allocated_time_seconds: member?.allocated_time_seconds || 300,
