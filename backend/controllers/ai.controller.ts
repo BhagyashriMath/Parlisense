@@ -68,11 +68,21 @@ export class AiController {
     const { member_id, violation_type, seat_id, confidence } = req.body;
     const member = await memberService.getById(member_id);
 
+    const resolvedSeatId = seat_id || member?.seat_id;
+
+    if (violation_type === "NORMAL" || violation_type === "COMPLIANT") {
+      if (resolvedSeatId) {
+        telemetryService.updateSeatPresence(resolvedSeatId, true, "Normal");
+      }
+      res.json({ status: "PRESENCE_RESTORED", member_id, seat_id: resolvedSeatId });
+      return;
+    }
+
     const wrongSeat = Boolean(seat_id && seat_id !== member?.seat_id);
     if ((violation_type || wrongSeat) && member) {
       const effectiveViolation = wrongSeat ? "WRONG_SEAT_OCCUPANCY" : violation_type;
       telemetryService.updateSeatPresence(
-        seat_id || member.seat_id,
+        resolvedSeatId || member.seat_id,
         effectiveViolation !== "MEMBER_ABSENT",
         effectiveViolation === "MEMBER_ABSENT" ? "Absent" : effectiveViolation === "WRONG_SEAT_OCCUPANCY" ? "Wrong Seat" : "Unauthorized Movement"
       );
@@ -80,7 +90,7 @@ export class AiController {
         alert_id: `ALT-PRES-${member_id}-${Date.now()}`,
         session_id: telemetryService.getState().sessionId,
         member_id,
-        seat_id: seat_id || member.seat_id,
+        seat_id: resolvedSeatId || member.seat_id,
         rule_id: "RULE_7_UNAUTHORIZED_MOVEMENT",
         type: effectiveViolation,
         severity: effectiveViolation === "MEMBER_ABSENT" || wrongSeat ? "HIGH" : "MEDIUM",
@@ -88,7 +98,7 @@ export class AiController {
         title: effectiveViolation === "MEMBER_ABSENT" ? `Member Absent from Camera — ${member.name}` : wrongSeat ? `Wrong Seat Occupancy — ${member.name}` : `Significant Movement Detected — ${member.name}`,
         description: wrongSeat
           ? `${member.name} was detected at ${seat_id}; assigned seat is ${member.seat_id}.`
-          : `Vision detected displacement for ${member.name} (Seat ${seat_id || member.seat_id}).`,
+          : `Vision detected displacement for ${member.name} (Seat ${resolvedSeatId || member.seat_id}).`,
         member_audio_message: "Please remain in your assigned seat position.",
         suspension_recommended: false,
         source_module: "Member Presence Monitor",
@@ -98,7 +108,7 @@ export class AiController {
       telemetryService.broadcast();
     }
 
-    res.json({ status: "PRESENCE_RECORDED", member_id, violation_type, seat_id });
+    res.json({ status: "PRESENCE_RECORDED", member_id, violation_type, seat_id: resolvedSeatId });
   }
 }
 
