@@ -7,11 +7,12 @@ export class EmergencyRepository {
       ? `SELECT er.*, COALESCE(m.name, 'Hon. Member') as member_name, COALESCE(m.seat_id, 'S001') as seat_id 
          FROM emergency_requests er 
          LEFT JOIN members m ON er.member_id = m.member_id 
-         WHERE er.session_id = ? 
+         WHERE er.session_id = ? AND er.status != 'SUPERSEDED' AND er.status != 'EXPIRED'
          ORDER BY er.requested_at DESC`
       : `SELECT er.*, COALESCE(m.name, 'Hon. Member') as member_name, COALESCE(m.seat_id, 'S001') as seat_id 
          FROM emergency_requests er 
          LEFT JOIN members m ON er.member_id = m.member_id 
+         WHERE er.status != 'SUPERSEDED' AND er.status != 'EXPIRED'
          ORDER BY er.requested_at DESC`;
     const params = sessionId ? [sessionId] : [];
     return db.all<EmergencyRequestEntity>(sql, params);

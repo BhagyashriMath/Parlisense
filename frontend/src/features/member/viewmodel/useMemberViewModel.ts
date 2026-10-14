@@ -427,7 +427,9 @@ export function useMemberViewModel() {
     .filter(
       (r) =>
         (r.member_id === currentMember.member_id || r.seat_id === currentMember.seat_id) &&
-        (!currentSessionId || !r.session_id || r.session_id === currentSessionId)
+        (!currentSessionId || !r.session_id || r.session_id === currentSessionId) &&
+        r.status !== "SUPERSEDED" &&
+        r.status !== "EXPIRED"
     )
     .sort((a, b) => new Date(b.requested_at || 0).getTime() - new Date(a.requested_at || 0).getTime())[0];
 

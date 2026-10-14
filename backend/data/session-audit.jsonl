@@ -289,3 +289,6 @@
 {"id":"AUD-1792004392436-h1ju7","type":"SESSION_STARTED","timestamp":"2026-10-14T18:59:52.436Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004392239"}}
 {"id":"AUD-1792004400636-snn8b","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:00:00.636Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
 {"id":"AUD-1792004406874-ineuh","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T19:00:06.874Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792004400549","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792004478102-ltxx2","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:01:18.102Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792004671359-o7hqe","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:31.359Z","sessionId":null,"payload":{"member_id":"M001","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792004697729-aka3a","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:57.729Z","sessionId":null,"payload":{"member_id":"M002","reason":"Urgent Family Matter"}}
