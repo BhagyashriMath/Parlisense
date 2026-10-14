@@ -225,6 +225,7 @@ export function useMemberViewModel() {
           (alert.alert_level as 1 | 2 | 3) ||
           (alert.severity === "CRITICAL" || alert.severity === "HIGH" ? 2 : 1),
         title: alert.title,
+        description: alert.description,
         member_audio_message: alert.member_audio_message,
         severity: alert.severity
       });
@@ -245,6 +246,62 @@ export function useMemberViewModel() {
     currentMember.member_id,
     currentMember.seat_id
   ]);
+
+  // Watch emergency requests for decisions from the Hon. Speaker
+  const seenEmergencyDecisions = useRef<Set<string>>(new Set());
+  const initialReqIdsRecorded = useRef(false);
+  const [exitApprovedModalOpen, setExitApprovedModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!telemetry?.emergency_requests || !currentMember.member_id) return;
+    const currentSessionId = telemetry?.session_id;
+    const myReqs = telemetry.emergency_requests.filter(
+      (r: any) =>
+        (r.member_id === currentMember.member_id || r.seat_id === currentMember.seat_id) &&
+        (!currentSessionId || !r.session_id || r.session_id === currentSessionId)
+    );
+
+    // On initial mount/load, record any already-decided requests so we never speak stale past announcements
+    if (!initialReqIdsRecorded.current) {
+      myReqs.forEach((r: any) => {
+        if (r.status !== "PENDING") {
+          seenEmergencyDecisions.current.add(`emg-decision-${r.id}-${r.status}`);
+        }
+      });
+      initialReqIdsRecorded.current = true;
+      return;
+    }
+
+    myReqs.forEach((req: any) => {
+      if (req.status === "APPROVED" || req.status === "REJECTED" || req.status === "DENIED") {
+        const key = `emg-decision-${req.id}-${req.status}`;
+        if (!seenEmergencyDecisions.current.has(key)) {
+          seenEmergencyDecisions.current.add(key);
+          const isApproved = req.status === "APPROVED";
+
+          if (isApproved) {
+            setExitApprovedModalOpen(true);
+          }
+
+          pushNotif({
+            type: isApproved ? "ALERT" : "WARNING",
+            alert_id: key,
+            alert_level: isApproved ? 1 : 2,
+            title: isApproved
+              ? `🚑 Emergency Exit Approved by ${req.decided_by || "Hon. Speaker"}`
+              : `⛔ Emergency Exit Declined by ${req.decided_by || "Hon. Speaker"}`,
+            description: isApproved
+              ? `Your emergency exit request (${req.reason}) has been APPROVED. Marshals have been dispatched to assist you.`
+              : `Your emergency exit request was declined. Please remain in your designated seat.`,
+            member_audio_message: isApproved
+              ? "Your emergency exit request has been approved by the Honourable Speaker. Marshals are assisting you."
+              : "Your emergency exit request was declined by the Honourable Speaker. Please remain in your seat.",
+            severity: isApproved ? "HIGH" : "MEDIUM"
+          });
+        }
+      }
+    });
+  }, [telemetry?.emergency_requests, currentMember.member_id, currentMember.seat_id, telemetry?.session_id]);
 
 // Derived metrics
   const sessionActive = !!telemetry?.is_active;
@@ -365,9 +422,14 @@ export function useMemberViewModel() {
     ]
   };
 
+  const currentSessionId = telemetry?.session_id;
   const myExitRequest = (telemetry?.emergency_requests || [])
-    .filter((r) => r.member_id === currentMember.member_id || r.seat_id === currentMember.seat_id)
-    .pop();
+    .filter(
+      (r) =>
+        (r.member_id === currentMember.member_id || r.seat_id === currentMember.seat_id) &&
+        (!currentSessionId || !r.session_id || r.session_id === currentSessionId)
+    )
+    .sort((a, b) => new Date(b.requested_at || 0).getTime() - new Date(a.requested_at || 0).getTime())[0];
 
   const violationCount =
     (scorecard?.statistics?.time_violations || 0) +
@@ -384,7 +446,7 @@ export function useMemberViewModel() {
         alert_level: 2,
         title: `Exit Request Dispatched: ${emergencyType}`,
         member_audio_message:
-          "Your emergency exit request has been transmitted to the Hon. Speaker.",
+          "Your emergency exit request has been transmitted to the Hon. Speaker. Please await approval.",
         severity: "HIGH"
       });
     } catch (e) {
@@ -400,6 +462,7 @@ export function useMemberViewModel() {
     scorecard,
     emergencyModalOpen,
     emergencyType,
+    exitApprovedModalOpen,
     notifications,
     isSuspended,
     memberSuspended,
@@ -428,6 +491,7 @@ export function useMemberViewModel() {
     setSelectedMemberId,
     setEmergencyModalOpen,
     setEmergencyType,
+    setExitApprovedModalOpen,
     setCameraView,
     handleEmergencySubmit,
     openScorecard,

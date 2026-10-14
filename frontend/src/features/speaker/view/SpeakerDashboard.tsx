@@ -9,7 +9,7 @@ import { AcousticNoiseMeter } from '../../chamber-monitoring/view/AcousticNoiseM
 import { SimulationControls } from '../../chamber-monitoring/view/SimulationControls';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
-import { ShieldAlert, AlertCircle, AlertTriangle, Play, FileText, Calendar } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, AlertCircle, AlertTriangle, Play, FileText, Calendar } from 'lucide-react';
 import { MemberSessionSummary } from '../../../shared/types';
 import { ScheduleSessionModal } from './components/ScheduleSessionModal';
 import { useParliament } from '../../../infrastructure/context/ParliamentContext';
@@ -221,10 +221,10 @@ export function SpeakerDashboard() {
       </div>
 
       {/* 3. Main Operational Chamber Workspace */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-1.5 overflow-hidden">
-        {/* Left Column: Camera Matrix & Live Whisper STT Transcript (7 cols) */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 overflow-hidden">
+        {/* Left Column: Camera Matrix & Live Whisper STT Transcript (6 cols) */}
         <div
-          className={`lg:col-span-7 flex flex-col min-h-0 overflow-hidden ${
+          className={`lg:col-span-6 flex flex-col min-h-0 overflow-hidden ${
             activeMobileView === "floor" ? "flex-1 min-h-[340px]" : "hidden lg:flex"
           }`}
         >
@@ -236,46 +236,63 @@ export function SpeakerDashboard() {
           />
         </div>
 
-        {/* Center-Right Column: Acoustic Meter & Live AI Decorum Log (2.5 cols) */}
+        {/* Center Column: Acoustic Meter, Live AI Decorum Log & Disciplinary Decisions (3 cols) */}
         <div
-          className={`lg:col-span-2 flex flex-col gap-1.5 min-h-0 overflow-hidden ${
+          className={`lg:col-span-3 flex flex-col gap-2 min-h-0 overflow-y-auto pr-1 ${
             activeMobileView === "decorum" ? "flex-1 min-h-[340px]" : "hidden lg:flex"
           }`}
         >
           {/* Noise Level */}
-          <div className="h-44 flex-shrink-0 bg-slate-900 rounded-xl border border-slate-800 p-2.5 overflow-hidden shadow-sm flex flex-col">
-            <AcousticNoiseMeter />
-          </div>
+          <AcousticNoiseMeter className="flex-shrink-0" />
 
           {/* AI Decorum Log */}
-          <div className="flex-1 min-h-0 bg-slate-900 rounded-xl border border-slate-800 p-2.5 overflow-hidden shadow-sm flex flex-col">
-            <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-              <span>Decorum Infractions</span>
-            </h3>
+          <div className="bg-slate-900 rounded-xl border border-slate-800 p-2.5 shadow-sm flex flex-col flex-shrink-0 min-h-[180px] max-h-72">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80 mb-2 flex-shrink-0">
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                <span>Decorum Infractions</span>
+              </h3>
+              {notifications.length > 0 ? (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                  {notifications.length} Active
+                </span>
+              ) : (
+                <span className="text-[10px] font-semibold text-emerald-400 font-mono">
+                  0 Logged
+                </span>
+              )}
+            </div>
+
             <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
               {notifications.length === 0 ? (
-                <p className="text-[11px] text-slate-500 italic text-center py-6">
-                  No active chamber infractions logged.
-                </p>
+                <div className="flex flex-col items-center justify-center py-6 text-center text-slate-500 space-y-1">
+                  <ShieldCheck className="w-6 h-6 text-emerald-500/50" />
+                  <p className="text-[11px] italic">No active chamber infractions logged.</p>
+                  <p className="text-[10px] text-slate-600">Parliamentary decorum is compliant.</p>
+                </div>
               ) : (
-                notifications.slice(0, 15).map((n) => (
+                notifications.slice(0, 25).map((n) => (
                   <div
                     key={n.id}
-                    className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 text-xs space-y-0.5"
+                    className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-slate-700/80 transition-colors text-xs space-y-1"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1.5">
                       <span className="font-bold text-slate-200 truncate">{n.title}</span>
-                      <Badge variant={n.severity === "CRITICAL" ? "danger" : "warning"}>
+                      <Badge variant={n.severity === "CRITICAL" ? "danger" : "warning"} className="flex-shrink-0 text-[9px]">
                         {n.severity}
                       </Badge>
                     </div>
-                    <p className="text-[10px] text-slate-400">{n.description}</p>
+                    <p className="text-[10px] text-slate-400 leading-snug">{n.description}</p>
+                    {n.timestamp && (
+                      <p className="text-[9px] text-slate-500 font-mono text-right">{n.timestamp}</p>
+                    )}
                   </div>
                 ))
               )}
             </div>
           </div>
+
+          {/* Speaker Decisions: Rule 374 Suspension Recommendation & Emergency Exit Requests */}
           <SpeakerDecisions
             suspensionRecs={suspensionRecs}
             pendingEmergencyRequests={pendingEmergencyRequests}
@@ -287,7 +304,7 @@ export function SpeakerDashboard() {
 
         {/* Right Column: Raised Hands Queue + Member Discipline Roster (3 cols) */}
         <div
-          className={`lg:col-span-3 flex flex-col gap-1.5 min-h-0 overflow-hidden ${
+          className={`lg:col-span-3 flex flex-col gap-2 min-h-0 overflow-hidden ${
             activeMobileView === "roster" ? "flex-1 min-h-[340px]" : "hidden lg:flex"
           }`}
         >

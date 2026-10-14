@@ -6,6 +6,7 @@ import { MemberQuotaWidget } from './components/MemberQuotaWidget';
 import { MemberScorecardSummaryWidget } from './components/MemberScorecardSummaryWidget';
 import { SuspensionFullscreenView } from './components/SuspensionFullscreenView';
 import { EmergencyExitModal } from './components/EmergencyExitModal';
+import { EmergencyExitApprovedModal } from './components/EmergencyExitApprovedModal';
 import { MemberSelfCamera } from './MemberSelfCamera';
 import { CameraStreamView } from '../../chamber-monitoring/view/CameraStreamView';
 import { ChamberVideoGrid } from '../../../shared/components/ChamberVideoGrid';
@@ -46,6 +47,8 @@ export function MemberDashboard() {
     neg,
     memSummary,
     myExitRequest,
+    exitApprovedModalOpen,
+    setExitApprovedModalOpen,
     setEmergencyModalOpen,
     setEmergencyType,
     setCameraView,
@@ -154,6 +157,41 @@ export function MemberDashboard() {
           </span>
         </div>
       )}
+      {/* Emergency Exit Decision Live Response Banner */}
+      {sessionActive && myExitRequest && myExitRequest.status === "APPROVED" && (
+        <div className="bg-emerald-950/95 border-2 border-emerald-500 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-lg flex-shrink-0 animate-pulse">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-emerald-400 font-black text-xs uppercase font-mono tracking-wider flex items-center gap-1.5 flex-shrink-0">
+              🚑 EMERGENCY EXIT APPROVED BY HON. SPEAKER
+            </span>
+            <span className="text-xs text-emerald-200 truncate hidden sm:inline">
+              Your request ({myExitRequest.reason}) was approved by {myExitRequest.decided_by || "Hon. Speaker"}. Chamber marshals have been dispatched to assist you.
+            </span>
+          </div>
+          <button
+            onClick={() => setExitApprovedModalOpen(true)}
+            className="text-[10px] font-bold px-2.5 py-1 rounded bg-emerald-500 text-slate-950 font-mono tracking-wider flex-shrink-0 hover:bg-emerald-400 cursor-pointer transition-colors"
+          >
+            CLEARED TO EXIT
+          </button>
+        </div>
+      )}
+      {sessionActive && myExitRequest && myExitRequest.status === "REJECTED" && (
+        <div className="bg-rose-950/90 border border-rose-500/70 rounded-xl px-4 py-2 flex items-center justify-between shadow-lg flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-rose-400 font-bold text-xs uppercase font-mono tracking-wider flex-shrink-0">
+              ⛔ EMERGENCY EXIT REQUEST DECLINED
+            </span>
+            <span className="text-xs text-rose-200 truncate hidden sm:inline">
+              The Hon. Speaker has declined your exit request. Please remain in your designated seat.
+            </span>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/25 text-rose-300 border border-rose-500/50 font-mono flex-shrink-0">
+            REMAIN SEATED
+          </span>
+        </div>
+      )}
+
       {/* 1. Member Profile & Floor Quota Banner */}
       <MemberProfileBanner
         currentMember={currentMember}
@@ -164,7 +202,13 @@ export function MemberDashboard() {
         isQuotaExhausted={isQuotaExhausted}
         myExitRequest={myExitRequest}
         onOpenScorecard={openScorecard}
-        onOpenEmergencyModal={() => setEmergencyModalOpen(true)}
+        onOpenEmergencyModal={() => {
+          if (myExitRequest?.status === "APPROVED") {
+            setExitApprovedModalOpen(true);
+          } else {
+            setEmergencyModalOpen(true);
+          }
+        }}
       />
 
       {/* Request to Speak / Raise Hand Action Strip */}
@@ -348,6 +392,15 @@ export function MemberDashboard() {
         emergencyType={emergencyType}
         onEmergencyTypeChange={setEmergencyType}
         onSubmit={handleEmergencySubmit}
+      />
+
+      {/* 4. Emergency Exit Clearance & Auto-Exit Countdown Popup */}
+      <EmergencyExitApprovedModal
+        isOpen={exitApprovedModalOpen || (sessionActive && myExitRequest?.status === "APPROVED")}
+        request={myExitRequest}
+        currentMember={currentMember}
+        onLogout={logout}
+        countdownSeconds={5}
       />
     </div>
   );

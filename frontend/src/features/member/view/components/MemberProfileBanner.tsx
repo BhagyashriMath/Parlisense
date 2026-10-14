@@ -102,14 +102,28 @@ export const MemberProfileBanner: React.FC<MemberProfileBannerProps> = ({
         </Button>
 
         <Button
-          variant={myExitRequest ? "secondary" : "danger"}
+          variant={
+            myExitRequest?.status === "APPROVED"
+              ? "secondary"
+              : myExitRequest?.status === "PENDING"
+              ? "secondary"
+              : "danger"
+          }
           size="sm"
           onClick={onOpenEmergencyModal}
           disabled={Boolean(myExitRequest && myExitRequest.status === "PENDING")}
-          icon={<AlertTriangle className="w-3.5 h-3.5" />}
-          className="flex-1 sm:flex-none justify-center text-xs"
+          icon={<AlertTriangle className={`w-3.5 h-3.5 ${myExitRequest?.status === "APPROVED" ? "text-emerald-400" : ""}`} />}
+          className={`flex-1 sm:flex-none justify-center text-xs ${
+            myExitRequest?.status === "APPROVED"
+              ? "bg-emerald-950/80 hover:bg-emerald-900/80 border-emerald-500/80 text-emerald-200 font-bold"
+              : ""
+          }`}
         >
-          {myExitRequest && myExitRequest.status === "PENDING" ? "Exit Pending" : "Emergency Exit"}
+          {myExitRequest && myExitRequest.status === "PENDING"
+            ? "Exit Pending..."
+            : myExitRequest && myExitRequest.status === "APPROVED"
+            ? "Exit Approved ✓"
+            : "Emergency Exit"}
         </Button>
       </div>
     </div>

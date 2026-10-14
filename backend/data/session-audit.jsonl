@@ -268,3 +268,24 @@
 {"id":"AUD-1789580825898-00gyd","type":"SUSPENSION_REJECTED","timestamp":"2026-09-16T17:47:05.898Z","sessionId":null,"payload":{"alert_id":"ALT-SUS-M001-1789578560513","dismissed_by":"Hon. Speaker"}}
 {"id":"AUD-1789580827128-vbmi0","type":"SUSPENSION_REJECTED","timestamp":"2026-09-16T17:47:07.128Z","sessionId":null,"payload":{"alert_id":"ALT-SUS-M001-1789578560513","dismissed_by":"Hon. Speaker"}}
 {"id":"AUD-1791994971691-ifk0e","type":"SESSION_STARTED","timestamp":"2026-10-14T16:22:51.691Z","sessionId":null,"payload":{"session_id":"PAR-2026-1791994971173"}}
+{"id":"AUD-1792002069364-5pbnk","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T18:21:09.364Z","sessionId":null,"payload":{"member_id":"M001","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792002069725-9hpji","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T18:21:09.725Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792002069274","member_id":"M001","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792002779485-310h2","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T18:32:59.485Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792001569789","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792002894740-129rz","type":"SESSION_STOPPED","timestamp":"2026-10-14T18:34:54.740Z","sessionId":null,"payload":{"session_id":"PAR-2026-1791994971173"}}
+{"id":"AUD-1792002911766-d7zp6","type":"SESSION_STARTED","timestamp":"2026-10-14T18:35:11.766Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792002911574"}}
+{"id":"AUD-1792003096797-l2eg0","type":"SESSION_STOPPED","timestamp":"2026-10-14T18:38:16.797Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792002911574"}}
+{"id":"AUD-1792003627304-k902r","type":"SESSION_STARTED","timestamp":"2026-10-14T18:47:07.304Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792003627093"}}
+{"id":"AUD-1792003635781-ebauw","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T18:47:15.781Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792003646942-93ohg","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T18:47:26.942Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792003635652","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792004128758-7sdbf","type":"SESSION_STOPPED","timestamp":"2026-10-14T18:55:28.758Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792003627093"}}
+{"id":"AUD-1792004136164-v4kx1","type":"SESSION_STARTED","timestamp":"2026-10-14T18:55:36.164Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004135576"}}
+{"id":"AUD-1792004147976-f5y5q","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T18:55:47.981Z","sessionId":null,"payload":{"member_id":"M002","reason":"Urgent Family Matter"}}
+{"id":"AUD-1792004153712-qyuxl","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T18:55:53.712Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792004147834","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792004208888-uemuk","type":"SESSION_STOPPED","timestamp":"2026-10-14T18:56:48.888Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004135576"}}
+{"id":"AUD-1792004218489-dk0q7","type":"SESSION_STARTED","timestamp":"2026-10-14T18:56:58.489Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004218255"}}
+{"id":"AUD-1792004224067-zziem","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T18:57:04.067Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792004229935-l99uw","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T18:57:09.935Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792004223975","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}
+{"id":"AUD-1792004258676-2r183","type":"SESSION_STOPPED","timestamp":"2026-10-14T18:57:38.676Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004218255"}}
+{"id":"AUD-1792004392436-h1ju7","type":"SESSION_STARTED","timestamp":"2026-10-14T18:59:52.436Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004392239"}}
+{"id":"AUD-1792004400636-snn8b","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:00:00.636Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
+{"id":"AUD-1792004406874-ineuh","type":"EMERGENCY_EXIT_DECIDED","timestamp":"2026-10-14T19:00:06.874Z","sessionId":null,"payload":{"request_id":"EMG-REQ-1792004400549","member_id":"M002","status":"APPROVED","decided_by":"Hon. Speaker"}}

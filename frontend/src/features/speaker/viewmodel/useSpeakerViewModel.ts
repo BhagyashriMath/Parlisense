@@ -427,8 +427,12 @@ export function useSpeakerViewModel() {
     allocatedTime
   );
   const relevancePct = ai?.agenda_relevance_percentage || 85;
+  const currentSessionId = telemetry?.session_id;
   const pendingEmergencyRequests = (telemetry?.emergency_requests || []).filter(
-    (r) => r.status === "PENDING" && !decidedEmergencyIds.has(r.id || (r as any).request_id)
+    (r) =>
+      r.status === "PENDING" &&
+      (!currentSessionId || !r.session_id || r.session_id === currentSessionId) &&
+      !decidedEmergencyIds.has(r.id || (r as any).request_id)
   );
   const speakingRequests = telemetry?.speaking_requests || [];
   const pendingRaisedHands = speakingRequests.filter((r) => r.member_id !== currentSpeakerId);

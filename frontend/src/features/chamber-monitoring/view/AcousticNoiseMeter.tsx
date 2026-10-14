@@ -2,7 +2,11 @@ import React from "react";
 import { useParliament } from "../../../infrastructure/context/ParliamentContext";
 import { Volume2, AlertOctagon, Activity } from "lucide-react";
 
-export function AcousticNoiseMeter() {
+interface AcousticNoiseMeterProps {
+  className?: string;
+}
+
+export function AcousticNoiseMeter({ className = "" }: AcousticNoiseMeterProps = {}) {
   const { telemetry, isMicActive, liveMicDb } = useParliament();
 
   const isLiveActive = !!telemetry?.is_active && !telemetry?.is_paused;
@@ -55,7 +59,7 @@ export function AcousticNoiseMeter() {
   const bars = [40, 65, 80, 50, 90, 75, 45, 60, 85, 70, 55, 95, 60, 48, 72, 88];
 
   return (
-    <div id="acoustic-noise-meter" className="bg-slate-900 rounded-lg border border-slate-800 p-2 shadow-sm flex flex-col justify-between">
+    <div id="acoustic-noise-meter" className={`bg-slate-900 rounded-xl border border-slate-800 p-2.5 shadow-sm flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <div className="p-1 rounded bg-slate-800 text-amber-400 border border-slate-700">

@@ -293,7 +293,7 @@ export class TelemetryService {
   async generateCurrentTelemetry() {
     // Finish asynchronous reads before taking a single, consistent clock snapshot.
     const [emergencyRequests, notifications, recommendations] = await Promise.all([
-      emergencyRepository.findAll(),
+      emergencyRepository.findAll(this.state.sessionId),
       notificationRepository.getAll(10),
       alertRepository.getPendingRecommendations()
     ]);

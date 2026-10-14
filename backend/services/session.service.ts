@@ -248,6 +248,8 @@ export class SessionService {
       await db.run("UPDATE suspensions SET status = 'EXPIRED' WHERE status = 'CONFIRMED';");
       // Start each sitting with a clean active-alert panel while retaining prior alerts for reports/audit history.
       await db.run("UPDATE alerts SET status = 'RESOLVED' WHERE status = 'ACTIVE';");
+      // Expire any unhandled emergency requests from previous sessions
+      await db.run("UPDATE emergency_requests SET status = 'EXPIRED' WHERE status = 'PENDING';");
       alertRepository.setCachedAlerts([]);
       memberRepository.getCachedMembers().forEach(m => {
         m.status = "ACTIVE";
@@ -442,6 +444,10 @@ export class SessionService {
     });
 
     await auditRepository.log("SESSION_STOPPED", { session_id: this.config.session_id });
+
+    try {
+      await db.run("UPDATE emergency_requests SET status = 'EXPIRED' WHERE session_id = ? AND status = 'PENDING';", [this.config.session_id]);
+    } catch (_) {}
 
     try {
       await scorecardRepository.generateSessionReport(this.config.session_id, this.config.current_topic);

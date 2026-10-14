@@ -52,7 +52,7 @@ export const SpeakerRaisedHandsPanel: React.FC<SpeakerRaisedHandsPanelProps> = (
         )}
       </div>
 
-      <div className="space-y-1 p-1.5 max-h-44 overflow-y-auto">
+      <div className="space-y-1 p-1.5 max-h-44 overflow-y-auto pr-1">
         {requests.length === 0 ? (
           <p className="text-[11px] text-slate-500 italic text-center py-3">
             {isSessionActive

@@ -17,6 +17,13 @@ import { db } from "./database/db";
 import { authService } from "./services/auth.service";
 import { VideoRoomService } from "./services/video-room.service";
 
+process.on("unhandledRejection", (reason: any) => {
+  console.warn("[SERVER] Handled unhandled rejection:", reason?.message || reason);
+});
+process.on("uncaughtException", (err: any) => {
+  console.warn("[SERVER] Handled uncaught exception:", err?.message || err);
+});
+
 // 1. Express Application Setup
 const app = express();
 

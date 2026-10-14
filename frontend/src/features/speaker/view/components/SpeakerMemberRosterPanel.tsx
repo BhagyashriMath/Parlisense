@@ -68,7 +68,7 @@ export const SpeakerMemberRosterPanel: React.FC<SpeakerMemberRosterPanelProps> =
       </div>
 
       {/* Scrollable Members List */}
-      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800/60 p-1">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-800/60 p-1 pr-1.5">
         {members.map((m) => {
           const isActive = m.seat_id === activeSpeakerId;
           const discipline = disciplineMap[m.member_id] || { warnings: 0, suspended: false };

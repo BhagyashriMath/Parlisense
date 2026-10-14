@@ -17,6 +17,14 @@ export class EmergencyRepository {
     return db.all<EmergencyRequestEntity>(sql, params);
   }
 
+  public async findById(id: string): Promise<EmergencyRequestEntity | undefined> {
+    const sql = `SELECT er.*, COALESCE(m.name, 'Hon. Member') as member_name, COALESCE(m.seat_id, 'S001') as seat_id 
+       FROM emergency_requests er 
+       LEFT JOIN members m ON er.member_id = m.member_id 
+       WHERE er.id = ?`;
+    return db.get<EmergencyRequestEntity>(sql, [id]);
+  }
+
   public async create(data: { session_id?: string; member_id: string; reason: string }): Promise<EmergencyRequestEntity> {
     const req: EmergencyRequestEntity = {
       id: `EMG-REQ-${Date.now()}`,

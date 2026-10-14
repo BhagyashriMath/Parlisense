@@ -30,12 +30,19 @@ export class DatabaseService {
         connectionString: DATABASE_URL,
         ssl: requiresSsl ? { rejectUnauthorized: false } : false,
         max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 30000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
       });
 
       this.pool.on("error", (err) => {
-        console.error("[DATABASE] Unexpected idle client error:", err.message);
+        // Neon terminates idle clients periodically; pg-pool removes them automatically.
+        // Ignore idle client termination so it does not bubble as an uncaught exception.
+        if (err?.message?.includes("terminated") || err?.message?.includes("closed")) {
+          return;
+        }
+        console.error("[DATABASE] Idle client notice:", err.message);
       });
 
       console.log("[DATABASE] Connected to PostgreSQL / Neon database.");
@@ -65,11 +72,34 @@ export class DatabaseService {
     return sql.replace(/\?/g, () => `$${index++}`);
   }
 
+  private isTransient(err: any): boolean {
+    if (!err) return false;
+    const msg = (err.message || "").toLowerCase();
+    return (
+      msg.includes("terminated") ||
+      msg.includes("timeout") ||
+      msg.includes("closed") ||
+      msg.includes("econnreset") ||
+      msg.includes("socket") ||
+      err.code === "57P01" ||
+      err.code === "ECONNRESET"
+    );
+  }
+
   public async run(sql: string, params: any[] = []): Promise<{ changes: number }> {
     if (this.isPostgres && this.pool) {
       const pgSql = this.convertPlaceholders(sql);
-      const res = await this.pool.query(pgSql, params);
-      return { changes: res.rowCount || 0 };
+      try {
+        const res = await this.pool.query(pgSql, params);
+        return { changes: res.rowCount || 0 };
+      } catch (err: any) {
+        if (this.isTransient(err)) {
+          await new Promise((r) => setTimeout(r, 600));
+          const res = await this.pool.query(pgSql, params);
+          return { changes: res.rowCount || 0 };
+        }
+        throw err;
+      }
     } else {
       const res = this.sqliteDb.prepare(sql).run(...params);
       return { changes: res.changes || 0 };
@@ -79,8 +109,17 @@ export class DatabaseService {
   public async all<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     if (this.isPostgres && this.pool) {
       const pgSql = this.convertPlaceholders(sql);
-      const res = await this.pool.query(pgSql, params);
-      return res.rows as T[];
+      try {
+        const res = await this.pool.query(pgSql, params);
+        return res.rows as T[];
+      } catch (err: any) {
+        if (this.isTransient(err)) {
+          await new Promise((r) => setTimeout(r, 600));
+          const res = await this.pool.query(pgSql, params);
+          return res.rows as T[];
+        }
+        throw err;
+      }
     } else {
       return this.sqliteDb.prepare(sql).all(...params) as T[];
     }
@@ -93,8 +132,17 @@ export class DatabaseService {
   public async get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
     if (this.isPostgres && this.pool) {
       const pgSql = this.convertPlaceholders(sql);
-      const res = await this.pool.query(pgSql, params);
-      return (res.rows[0] as T) || undefined;
+      try {
+        const res = await this.pool.query(pgSql, params);
+        return (res.rows[0] as T) || undefined;
+      } catch (err: any) {
+        if (this.isTransient(err)) {
+          await new Promise((r) => setTimeout(r, 600));
+          const res = await this.pool.query(pgSql, params);
+          return (res.rows[0] as T) || undefined;
+        }
+        throw err;
+      }
     } else {
       return this.sqliteDb.prepare(sql).get(...params) as T | undefined;
     }
@@ -102,7 +150,16 @@ export class DatabaseService {
 
   public async exec(sql: string): Promise<void> {
     if (this.isPostgres && this.pool) {
-      await this.pool.query(sql);
+      try {
+        await this.pool.query(sql);
+      } catch (err: any) {
+        if (this.isTransient(err)) {
+          await new Promise((r) => setTimeout(r, 600));
+          await this.pool.query(sql);
+          return;
+        }
+        throw err;
+      }
     } else {
       this.sqliteDb.exec(sql);
     }
