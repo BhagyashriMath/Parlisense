@@ -2,14 +2,10 @@ import React from 'react';
 import { Member } from '../../../../shared/types';
 import { Badge } from '../../../../components/common/Badge';
 import { Button } from '../../../../components/common/Button';
-import { Select } from '../../../../components/common/Select';
-import { Award, AlertTriangle, Mic, Radio, Clock } from 'lucide-react';
+import { Award, AlertTriangle, Mic } from 'lucide-react';
 
 interface MemberProfileBannerProps {
   currentMember: Member;
-  members: Member[];
-  selectedMemberId: string | null;
-  onSelectMember: (id: string) => void;
   isSpeaking: boolean;
   remainingSeconds: number;
   timePercent: number;
@@ -22,9 +18,6 @@ interface MemberProfileBannerProps {
 
 export const MemberProfileBanner: React.FC<MemberProfileBannerProps> = ({
   currentMember,
-  members,
-  selectedMemberId,
-  onSelectMember,
   isSpeaking,
   remainingSeconds,
   timePercent,
@@ -96,21 +89,8 @@ export const MemberProfileBanner: React.FC<MemberProfileBannerProps> = ({
         </div>
       </div>
 
-      {/* Right Controls & Switcher */}
+      {/* Right Controls */}
       <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-        {/* MP Switcher for testing/demo */}
-        <select
-          value={selectedMemberId || currentMember.member_id}
-          onChange={(e) => onSelectMember(e.target.value)}
-          className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-500 flex-1 sm:flex-none min-w-0"
-        >
-          {members.map((m) => (
-            <option key={m.member_id} value={m.member_id}>
-              {m.seat_id} - {m.name}
-            </option>
-          ))}
-        </select>
-
         <Button
           variant="gold"
           size="sm"

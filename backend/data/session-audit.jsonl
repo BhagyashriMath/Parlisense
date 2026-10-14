@@ -267,3 +267,4 @@
 {"id":"AUD-1789580823985-ht57x","type":"SUSPENSION_REJECTED","timestamp":"2026-09-16T17:47:03.985Z","sessionId":null,"payload":{"alert_id":"ALT-SUS-M001-1789578650121","dismissed_by":"Hon. Speaker"}}
 {"id":"AUD-1789580825898-00gyd","type":"SUSPENSION_REJECTED","timestamp":"2026-09-16T17:47:05.898Z","sessionId":null,"payload":{"alert_id":"ALT-SUS-M001-1789578560513","dismissed_by":"Hon. Speaker"}}
 {"id":"AUD-1789580827128-vbmi0","type":"SUSPENSION_REJECTED","timestamp":"2026-09-16T17:47:07.128Z","sessionId":null,"payload":{"alert_id":"ALT-SUS-M001-1789578560513","dismissed_by":"Hon. Speaker"}}
+{"id":"AUD-1791994971691-ifk0e","type":"SESSION_STARTED","timestamp":"2026-10-14T16:22:51.691Z","sessionId":null,"payload":{"session_id":"PAR-2026-1791994971173"}}

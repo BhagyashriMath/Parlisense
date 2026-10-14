@@ -19,9 +19,7 @@ export function MemberDashboard() {
   const [activeMobileView, setActiveMobileView] = React.useState<"feed" | "quota">("feed");
   const {
     telemetry,
-    members,
     currentMember,
-    selectedMemberId,
     scorecard,
     emergencyModalOpen,
     emergencyType,
@@ -48,7 +46,6 @@ export function MemberDashboard() {
     neg,
     memSummary,
     myExitRequest,
-    setSelectedMemberId,
     setEmergencyModalOpen,
     setEmergencyType,
     setCameraView,
@@ -160,9 +157,6 @@ export function MemberDashboard() {
       {/* 1. Member Profile & Floor Quota Banner */}
       <MemberProfileBanner
         currentMember={currentMember}
-        members={members}
-        selectedMemberId={selectedMemberId}
-        onSelectMember={setSelectedMemberId}
         isSpeaking={isSpeaking}
         remainingSeconds={remainingSeconds}
         timePercent={timePercent}
