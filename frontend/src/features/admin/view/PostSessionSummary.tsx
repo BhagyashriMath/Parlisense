@@ -28,45 +28,11 @@ export function PostSessionSummary({ onStartNewConfig }: PostSessionSummaryProps
   const { openScorecard, openReport } = useParliament();
   const vm = usePostSessionViewModel();
 
-  if (vm.isLoading) {
+  if (vm.isLoading || !vm.summaryData) {
     return <LoadingState message="Synthesizing Post-Session Parliamentary Analytics & Scorecards..." />;
   }
 
-  if (!vm.summaryData) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-300">
-        <Award className="w-12 h-12 text-amber-400 mb-3 animate-pulse" />
-        <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
-          Parliamentary Post-Session Record Unavailable
-        </h2>
-        <p className="text-xs text-slate-400 max-w-md mt-1 mb-4 leading-relaxed">
-          The comprehensive post-session parliamentary summary could not be retrieved. Click below to retry synthesizing the data.
-        </p>
-        <div className="flex gap-2">
-          <Button variant="gold" size="sm" onClick={vm.loadSummary}>
-            Retry Synthesizing
-          </Button>
-          <Button variant="secondary" size="sm" onClick={onStartNewConfig}>
-            Start New Session
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const session_information = vm.summaryData.session_information || {
-    session_id: "PARL-SESSION",
-    date: new Date().toLocaleDateString(),
-    house_chamber: "Lok Sabha Chamber",
-    start_time: "10:00 AM",
-    end_time: "11:00 AM",
-    total_duration: "1h 00m",
-    session_type: "Regular Legislative Sitting",
-    number_of_members: 0,
-    number_of_topics: 0
-  };
-  const member_wise_summary = vm.summaryData.member_wise_summary || [];
-  const topic_wise_summary = vm.summaryData.topic_wise_summary || [];
+  const { session_information, member_wise_summary, topic_wise_summary } = vm.summaryData;
 
   const tabs: TabItem[] = [
     {

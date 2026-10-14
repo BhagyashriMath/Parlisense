@@ -168,14 +168,13 @@ export function useMemberViewModel() {
 
   useEffect(() => {
     if (memberSuspended) {
-      setIsMicActive(false);
       speakMessage(
         "You are suspended from the session. Please leave the chamber.",
         "suspension",
         20000
       );
     }
-  }, [memberSuspended, setIsMicActive]);
+  }, [memberSuspended]);
 
   // Watch alerts routed to this member
   useEffect(() => {
@@ -301,17 +300,16 @@ export function useMemberViewModel() {
     seatInfo?.movementStatus?.includes("Well Rush") ||
     seatInfo?.movementStatus?.includes("Moved");
 
-  // Strictly enforce single-speaker discipline (Issue 3):
-  // Only ONE member is permitted to speak at a time. The member's microphone is enabled
-  // ONLY when they hold the floor (recognized active speaker). When another member is speaking
-  // or the floor is not held, the microphone is automatically muted.
+  // The member's desk is monitored: auto-enable the mic + live STT once while
+  // the sitting is live, so the transcript box actually receives speech. A
+  // single attempt prevents a permission prompt loop if the browser declines.
+  const micAutoEnabledRef = useRef(false);
   useEffect(() => {
-    if (isSpeaking) {
+    if (sessionActive && !micAutoEnabledRef.current) {
+      micAutoEnabledRef.current = true;
       setIsMicActive(true);
-    } else {
-      setIsMicActive(false);
     }
-  }, [isSpeaking, setIsMicActive]);
+  }, [sessionActive, setIsMicActive]);
   const allocatedSeconds = currentMember.allocated_time_seconds || 300;
   // Session totals include previous turns and remain visible while paused.
   const usedSeconds = telemetry?.member_speaking_seconds?.[currentMember.member_id] ??
@@ -362,36 +360,7 @@ export function useMemberViewModel() {
 
   const myExitRequest = (telemetry?.emergency_requests || [])
     .filter((r) => r.member_id === currentMember.member_id || r.seat_id === currentMember.seat_id)
-    .sort((a, b) => new Date(b.requested_at || 0).getTime() - new Date(a.requested_at || 0).getTime())[0];
-
-  // Watch for Speaker's response to emergency exit request (Issue 2)
-  const lastExitStatusRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (!myExitRequest) return;
-    const currentStatus = myExitRequest.status;
-    const prevStatus = lastExitStatusRef.current;
-    lastExitStatusRef.current = currentStatus;
-
-    if (prevStatus === "PENDING" && currentStatus === "APPROVED") {
-      pushNotif({
-        type: "EMERGENCY",
-        alert_level: 3,
-        title: "🚑 EMERGENCY EXIT APPROVED BY SPEAKER",
-        description: "The Honourable Speaker has accepted your emergency exit request. You are permitted to exit the chamber immediately.",
-        member_audio_message: "Your emergency exit request has been granted by the Honourable Speaker. You may safely exit the chamber.",
-        severity: "HIGH"
-      });
-    } else if (prevStatus === "PENDING" && (currentStatus === "REJECTED" || currentStatus === "DENIED")) {
-      pushNotif({
-        type: "WARNING",
-        alert_level: 2,
-        title: "⛔ EMERGENCY EXIT DECLINED BY SPEAKER",
-        description: "The Honourable Speaker has declined your emergency exit request. Please remain at your designated desk.",
-        member_audio_message: "Your emergency exit request was declined by the Honourable Speaker. Please remain in your seat.",
-        severity: "MEDIUM"
-      });
-    }
-  }, [myExitRequest?.status]);
+    .pop();
 
   const violationCount =
     (scorecard?.statistics?.time_violations || 0) +

@@ -38,18 +38,20 @@ interface PresenceStatus {
 }
 
 // ── Motion detection constants ──
-// High threshold to ignore normal head turns, breathing, note-taking, and posture shifts.
-// Only flag movement when pixel-difference ratio exceeds 0.22 (22% of zone area changed).
-const MOTION_THRESHOLD_RATIO = 0.22;
-// Pixel brightness delta to count as "changed" (higher delta avoids webcam sensor noise)
-const PIXEL_DELTA = 45;
-// Require at least 8 consecutive high-motion frames (4.0s of sustained movement)
-// before flagging an unauthorized movement violation.
-const VIOLATION_FRAMES = 8;
+// Only flag movement when pixel-difference ratio exceeds this threshold
+// (0.12 = 12% of pixels changed significantly — ignores minor head/hand movement)
+// Head/upper-body motion often changes a relatively small part of the frame.
+// Measure a central upper-body region instead of requiring 12% of the whole
+// image (which made normal head turns effectively invisible).
+const MOTION_THRESHOLD_RATIO = 0.06;
+// Pixel brightness delta to count as "changed"
+const PIXEL_DELTA = 35;
+// How many consecutive high-motion frames before reporting a violation
+const VIOLATION_FRAMES = 4;
 // How often to sample frames for motion (ms)
 const SAMPLE_INTERVAL_MS = 500;
 // Cooldown between sending violation reports to the server (ms)
-const REPORT_COOLDOWN_MS = 20000;
+const REPORT_COOLDOWN_MS = 15000;
 
 export function MemberSelfCamera({
   memberId,
@@ -183,15 +185,15 @@ export function MemberSelfCamera({
       return;
     }
 
-    // Motion detection via pixel differencing with designated boundary zone
+    // Motion detection via pixel differencing
     if (prevFrameRef.current) {
       const prev = prevFrameRef.current;
       let diffPixels = 0;
-      // Designated boundary box: generous center zone with buffer margin (15% to 85% width, 5% to 85% height)
-      const minX = Math.floor(W * 0.15);
-      const maxX = Math.ceil(W * 0.85);
+      // Focus on the member's head/torso and ignore the noisy outer edges.
+      const minX = Math.floor(W * 0.2);
+      const maxX = Math.ceil(W * 0.8);
       const minY = Math.floor(H * 0.05);
-      const maxY = Math.ceil(H * 0.85);
+      const maxY = Math.ceil(H * 0.72);
       const total = (maxX - minX) * (maxY - minY);
 
       for (let y = minY; y < maxY; y++) for (let x = minX; x < maxX; x++) {
@@ -204,31 +206,29 @@ export function MemberSelfCamera({
 
       const motionRatio = diffPixels / total;
 
-      // Only extensive movement that exceeds threshold consistently triggers a violation
       if (motionRatio > MOTION_THRESHOLD_RATIO) {
+        // Significant movement
         motionFrameCount.current++;
-        const isViolation = motionFrameCount.current >= VIOLATION_FRAMES;
-        const movementLevel: "NORMAL" | "SIGNIFICANT" = isViolation ? "SIGNIFICANT" : "NORMAL";
-        const confidence = Math.min(0.95, 0.5 + motionRatio);
+        const movementLevel: "NORMAL" | "SIGNIFICANT" = motionFrameCount.current >= VIOLATION_FRAMES ? "SIGNIFICANT" : "NORMAL";
+        const confidence = Math.min(0.95, 0.6 + motionRatio * 2);
 
         setPresence({
           present: true,
           movement: movementLevel,
-          seatCompliant: !isViolation,
+          seatCompliant: movementLevel !== "SIGNIFICANT",
           confidence,
-          lastViolation: isViolation ? "Sustained seat displacement detected" : null,
+          lastViolation: movementLevel === "SIGNIFICANT" ? "Significant movement detected — possible seat departure" : null,
         });
 
-        if (isViolation) {
+        if (movementLevel === "SIGNIFICANT") {
           reportPresence("UNAUTHORIZED_MOVEMENT", confidence);
         }
       } else {
-        // Natural decay of motion counter allows graceful recovery from brief shifts
+        // Normal / settled
         motionFrameCount.current = Math.max(0, motionFrameCount.current - 1);
-        const isMinorMotion = motionRatio > 0.06;
         setPresence({
           present: true,
-          movement: isMinorMotion ? "NORMAL" : "NONE",
+          movement: motionFrameCount.current > 2 ? "NORMAL" : "NONE",
           seatCompliant: true,
           confidence: 0.95,
           lastViolation: null,
@@ -317,21 +317,6 @@ export function MemberSelfCamera({
 
           {/* Hidden motion-detection canvas (off-screen sampling) */}
           <canvas ref={canvasRef} className="hidden" />
-
-          {/* Designated Seating Boundary Guide Box Overlay */}
-          {cameraActive && (
-            <div className="absolute inset-x-[10%] top-[6%] bottom-[20%] pointer-events-none rounded-lg border border-dashed border-sky-400/40 transition-colors duration-300">
-              <div className="absolute top-1 left-1.5 px-1.5 py-0.2 rounded bg-slate-950/85 border border-sky-500/30 text-[8px] font-mono font-bold text-sky-300 tracking-wider flex items-center gap-1 shadow-sm">
-                <span className={`w-1.5 h-1.5 rounded-full ${presence.movement === "SIGNIFICANT" ? "bg-rose-400 animate-ping" : presence.movement === "NORMAL" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                SEATING BOUNDARY
-              </div>
-              {/* Corner brackets */}
-              <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-sky-400" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-sky-400" />
-              <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-sky-400" />
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-sky-400" />
-            </div>
-          )}
 
           {/* Camera error state */}
           {cameraError && (

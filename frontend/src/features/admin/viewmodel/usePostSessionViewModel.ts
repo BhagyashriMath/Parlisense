@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CompleteSessionSummary } from '../../../shared/types';
-import { fetchCompleteSessionSummary, fetchSessionReport } from '../../../infrastructure/api/api';
+import { fetchCompleteSessionSummary } from '../../../infrastructure/api/api';
 
 export type PostSessionSection = 'overview' | 'summary_points' | 'members' | 'topics';
 
@@ -92,90 +92,7 @@ export function usePostSessionViewModel() {
       const data = await fetchCompleteSessionSummary();
       setSummaryData(data);
     } catch (err) {
-      console.warn("Direct fetchCompleteSessionSummary failed, falling back to report:", err);
-      try {
-        const report = await fetchSessionReport();
-        const fallbackSummary: CompleteSessionSummary = {
-          session_information: {
-            session_id: report.session_information?.session_id || "PARL-2026-8002",
-            date: report.session_information?.date || new Date().toLocaleDateString(),
-            start_time: report.session_information?.start_time || "10:00 AM",
-            end_time: report.session_information?.end_time || new Date().toLocaleTimeString(),
-            total_duration: report.session_information?.duration || "45m",
-            session_type: "Regular Legislative Sitting",
-            house_chamber: "Lok Sabha Chamber",
-            number_of_members: report.session_statistics?.total_members_registered || 12,
-            number_of_topics: 1
-          },
-          session_activity: {
-            total_speeches: report.member_scorecards?.reduce((sum, m) => sum + (m.statistics?.speaking_turns || 0), 0) || 5,
-            total_speaking_time_formatted: `${report.session_statistics?.total_speaking_time_minutes || 42}m`,
-            total_speaking_time_seconds: (report.session_statistics?.total_speaking_time_minutes || 42) * 60,
-            average_speaking_time_formatted: "45s",
-            number_of_active_members: report.session_statistics?.total_active_speakers || 5,
-            number_of_members_present: report.session_statistics?.total_members_present || 12
-          },
-          violation_summary: {
-            total_violations: report.session_statistics?.total_alerts_issued || 0,
-            low_violations: 0,
-            medium_violations: 0,
-            high_violations: report.session_statistics?.high_severity_alerts || 0,
-            critical_violations: report.session_statistics?.critical_violations || 0,
-            types_breakdown: {
-              "Speaking Time Overage": report.session_statistics?.off_topic_incidents || 0,
-              "Off-Topic Speech": report.session_statistics?.off_topic_incidents || 0,
-              "Unparliamentary Language": report.session_statistics?.offensive_language_incidents || 0,
-              "Disruptive Movement": report.session_statistics?.unauthorized_movement_incidents || 0,
-              "Cross-Talk & Interruptions": 0,
-              "Excessive Decibel / Noise": 0,
-              "Emergency Button Activations": report.session_statistics?.emergency_activations || 0,
-              "General Decorum Advisories": 0
-            }
-          },
-          topic_wise_summary: [
-            {
-              topic_id: "TOPIC-01",
-              title: report.session_information?.agenda_bill || "Digital Education & AI Governance Bill 2026",
-              description: "Deliberation on national educational infrastructure and digital sovereignty.",
-              start_time: report.session_information?.start_time || "10:00 AM",
-              end_time: report.session_information?.end_time || "11:00 AM"
-            }
-          ],
-          member_wise_summary: (report.member_scorecards || []).map((sc: any) => ({
-            member_id: sc.member_id,
-            name: sc.name,
-            seat_id: sc.seat_id,
-            mic_id: sc.mic_id || `MIC-${sc.seat_id}`,
-            role: sc.role || "Member of Parliament",
-            party: sc.party || "NDF",
-            presence: "Present",
-            speaking_time_formatted: `${Math.floor((sc.statistics?.speaking_time_seconds || 150) / 60)}:${String((sc.statistics?.speaking_time_seconds || 150) % 60).padStart(2, "0")}`,
-            speaking_time_seconds: sc.statistics?.speaking_time_seconds || 150,
-            speeches_count: sc.statistics?.speaking_turns || 1,
-            agenda_relevance_pct: sc.categories?.agenda_relevance || 85,
-            violations_count: sc.statistics?.time_violations || 0,
-            warnings_count: sc.statistics?.time_violations || 0,
-            seat_compliance_pct: sc.categories?.seat_compliance || 95,
-            behavior_emotion: "Constructive & Calm",
-            positive_marks: sc.positive_marks,
-            negative_deductions: sc.negative_deductions,
-            member_summary: sc.member_summary,
-            speaking_score: sc.categories?.speaking_discipline || 90,
-            agenda_score: sc.categories?.agenda_relevance || 85,
-            discipline_score: sc.categories?.decorum_discipline || 95,
-            seat_score: sc.categories?.seat_compliance || 95,
-            violations_score: 95,
-            final_score: sc.overall_score || 90,
-            grade: sc.grade || "A (High Constructive Record)"
-          })),
-          member_scorecards: report.member_scorecards || [],
-          timeline: [],
-          generated_at: report.generated_at || new Date().toISOString()
-        };
-        setSummaryData(fallbackSummary);
-      } catch (fallbackErr) {
-        console.error("Failed to build fallback post session summary:", fallbackErr);
-      }
+      console.error("Failed to load complete session summary:", err);
     } finally {
       setIsLoading(false);
     }
