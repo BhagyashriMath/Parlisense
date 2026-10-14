@@ -197,7 +197,7 @@
     "status": "LIVE",
     "is_locked": true
   },
-  "saved_at": "2026-10-14T18:59:53.260Z",
+  "saved_at": "2026-10-14T19:26:58.423Z",
   "liveState": {
     "sessionId": "PAR-2026-1792004392239",
     "isActive": true,
@@ -206,8 +206,11 @@
     "pauseTimestamp": null,
     "pausedElapsedSeconds": 0,
     "activeSpeakerId": "",
-    "speakingStartTime": 1792004393255,
-    "memberSpeakingMs": {},
+    "speakingStartTime": 1792006018418,
+    "memberSpeakingMs": {
+      "M001": 30046,
+      "M002": 44763
+    },
     "speakingRequests": []
   }
 }

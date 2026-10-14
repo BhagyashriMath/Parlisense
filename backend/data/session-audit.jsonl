@@ -292,3 +292,4 @@
 {"id":"AUD-1792004478102-ltxx2","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:01:18.102Z","sessionId":null,"payload":{"member_id":"M002","reason":"Medical Emergency at Desk"}}
 {"id":"AUD-1792004671359-o7hqe","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:31.359Z","sessionId":null,"payload":{"member_id":"M001","reason":"Medical Emergency at Desk"}}
 {"id":"AUD-1792004697729-aka3a","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:57.729Z","sessionId":null,"payload":{"member_id":"M002","reason":"Urgent Family Matter"}}
+{"id":"AUD-1792005960251-o1biy","type":"MEMBER_UPDATED","timestamp":"2026-10-14T19:26:00.251Z","sessionId":null,"payload":{"member_id":"M001","updates":{"warnings_count":0,"violations_count":4}}}

@@ -364,16 +364,18 @@ export function useMemberViewModel() {
     seatInfo?.movementStatus?.includes("Absent") ||
     seatInfo?.status?.includes("Moved");
 
-  // The member's desk is monitored: auto-enable the mic + live STT once while
-  // the sitting is live, so the transcript box actually receives speech. A
-  // single attempt prevents a permission prompt loop if the browser declines.
-  const micAutoEnabledRef = useRef(false);
+  // Strictly enforce single-speaker rule:
+  // Only the member who holds the floor (isSpeaking === true) is allowed to speak.
+  // When recognized by the Speaker, their microphone is automatically activated.
+  // When not holding the floor (or floor yielded to another member, or session paused/ended),
+  // their microphone is immediately deactivated/muted.
   useEffect(() => {
-    if (sessionActive && !micAutoEnabledRef.current) {
-      micAutoEnabledRef.current = true;
+    if (isSpeaking) {
       setIsMicActive(true);
+    } else {
+      setIsMicActive(false);
     }
-  }, [sessionActive, setIsMicActive]);
+  }, [isSpeaking, setIsMicActive]);
   const allocatedSeconds = currentMember.allocated_time_seconds || 300;
   // Session totals include previous turns and remain visible while paused.
   const usedSeconds = telemetry?.member_speaking_seconds?.[currentMember.member_id] ??

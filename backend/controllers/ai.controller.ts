@@ -44,9 +44,16 @@ export class AiController {
     let transcript;
     if (typeof transcript_snippet === "string" && transcript_snippet.trim().length > 3) {
       const activeSpeakerId = telemetryService.getState().activeSpeakerId;
-      const member = (member_id ? await memberService.getById(member_id) : null)
-        || (activeSpeakerId ? await memberService.getById(activeSpeakerId) : null)
-        || memberService.getCachedAll()[0];
+      // Single-speaker floor enforcement: only the recognized floor speaker may address the House
+      if (!activeSpeakerId) {
+        res.json({ status: "NO_ACTIVE_SPEAKER_RECOGNIZED" });
+        return;
+      }
+      if (member_id && member_id !== activeSpeakerId) {
+        res.status(403).json({ status: "UNAUTHORIZED_SPEAKER_BLOCKED", message: "Only the recognized floor speaker may address the House." });
+        return;
+      }
+      const member = await memberService.getById(activeSpeakerId) || memberService.getCachedAll()[0];
       if (member) {
         transcript = await transcriptRepository.save({
           id: `tr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

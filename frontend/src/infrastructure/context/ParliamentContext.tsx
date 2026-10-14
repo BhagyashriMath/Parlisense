@@ -131,6 +131,10 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
   // a scorecard selects a different member mid-speech.
   const selectedMemberIdRef = useRef(selectedMemberId);
   selectedMemberIdRef.current = selectedMemberId;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const telemetryRef = useRef(telemetry);
+  telemetryRef.current = telemetry;
 
   const refreshMembers = async () => {
     try {
@@ -228,7 +232,14 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
               const text = event.results[i][0].transcript.trim();
               if (event.results[i].isFinal) {
                 if (text.length > 3) {
-                  sendAudioTelemetry(0, text, selectedMemberIdRef.current).catch(() => {});
+                  const activeFloorMemberId = telemetryRef.current?.active_speaker?.member_id;
+                  const isUserSpeakerRole = currentUserRef.current?.role === "speaker";
+                  const currentMemberId = currentUserRef.current?.memberId || selectedMemberIdRef.current;
+                  const hasFloorPermission = isUserSpeakerRole || (!!activeFloorMemberId && currentMemberId === activeFloorMemberId);
+
+                  if (hasFloorPermission) {
+                    sendAudioTelemetry(0, text, currentMemberId).catch(() => {});
+                  }
                 }
               } else interim += text;
             }

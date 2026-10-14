@@ -230,14 +230,18 @@ export function MemberDashboard() {
                   ? "You hold the floor — addressing the House"
                   : myHandRaised
                   ? "Hand raised — awaiting recognition by the Chair"
-                  : "Seek the floor to address the House"}
+                  : telemetry?.active_speaker?.name
+                  ? `${telemetry.active_speaker.name} holds the floor (${telemetry.active_speaker.seat_id})`
+                  : "Chamber floor open"}
               </p>
               <p className="text-[10px] text-slate-500 truncate">
                 {isSpeaking
                   ? "Microphone live · floor clock running"
                   : myHandRaised
                   ? "You can withdraw your request at any time"
-                  : "The Speaker will see your raised hand and may grant the floor"}
+                  : telemetry?.active_speaker?.name
+                  ? "Microphone locked · Only one member may speak at a time"
+                  : "Raise hand to request speaking floor from the Chair"}
               </p>
             </div>
           </div>

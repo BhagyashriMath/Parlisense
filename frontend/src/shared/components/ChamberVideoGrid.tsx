@@ -14,7 +14,8 @@ import {
   Maximize2,
   Minimize2,
   Radio,
-  Users
+  Users,
+  Lock
 } from "lucide-react";
 
 interface ChamberVideoGridProps {
@@ -85,6 +86,20 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
   const isLocalUserMember = currentUser?.role === "member";
   // Selecting a floor member must never replace the Speaker's own identity.
   const currentMemberId = currentUser?.memberId || (isLocalUserMember ? selectedMemberId : undefined);
+  const effectiveMemberId = currentMemberId || (isLocalUserMember ? selectedMemberId : undefined);
+
+  // Single-Speaker floor enforcement:
+  // Presiding officer (Speaker) controls the Dais microphone.
+  // Floor members ONLY have speaking permission when recognized by the Chair as active_speaker.
+  const isFloorSpeaker = isSessionLive && !!telemetry?.active_speaker?.member_id && telemetry.active_speaker.member_id === effectiveMemberId;
+  const canSpeak = isLocalUserSpeaker || isFloorSpeaker;
+
+  // Auto-deactivate microphone if the member loses the floor or sitting ends
+  useEffect(() => {
+    if (!canSpeak && isMicActive) {
+      setIsMicActive(false);
+    }
+  }, [canSpeak, isMicActive, setIsMicActive]);
 
   // Speaker participant card & floor deduplication
   // If Karthik or anyone is Speaker, they sit on the Dais and must NOT be duplicated in floor member cards
@@ -369,15 +384,37 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
           {/* Start / Stop Mic Button */}
           <button
             id="chamber-grid-toggle-mic-btn"
-            onClick={() => setIsMicActive(!isMicActive)}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              isMicActive
-                ? "bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30"
-                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+            disabled={!canSpeak}
+            onClick={() => {
+              if (canSpeak) {
+                setIsMicActive(!isMicActive);
+              }
+            }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+              !canSpeak
+                ? "bg-slate-800/60 text-slate-500 border-slate-700/60 cursor-not-allowed opacity-80"
+                : isMicActive
+                ? "bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30 cursor-pointer"
+                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 cursor-pointer"
             }`}
-            title={isMicActive ? "Mute / Turn off personal microphone" : "Unmute / Turn on personal microphone"}
+            title={
+              !canSpeak
+                ? !isSessionLive
+                  ? "Microphone Locked · Sitting is not active"
+                  : telemetry?.active_speaker?.name
+                  ? `Microphone Locked · ${telemetry.active_speaker.name} holds the floor. Only one member may speak at a time.`
+                  : "Microphone Locked · Floor recognition required. Raise hand to request permission."
+                : isMicActive
+                ? "Mute / Turn off personal microphone"
+                : "Unmute / Turn on personal microphone"
+            }
           >
-            {isMicActive ? (
+            {!canSpeak ? (
+              <>
+                <Lock className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Mic Locked</span>
+              </>
+            ) : isMicActive ? (
               <>
                 <MicOff className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Stop Mic</span>
