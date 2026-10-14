@@ -80,45 +80,53 @@ export const LegislativeSummaryNotesTab: React.FC<LegislativeSummaryNotesTabProp
       </div>
 
       {/* Sub-Topic Cards */}
-      <div className="space-y-3">
-        {subTopics.map((sub) => (
-          <Card key={sub.id} className="p-4 bg-slate-900/90 border-slate-800 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Badge variant="gold" className="font-mono">
-                  {sub.id}
-                </Badge>
-                <h3 className="text-xs font-bold text-slate-100">{sub.title}</h3>
+      {subTopics.length === 0 ? (
+        <div className="p-8 text-center rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
+          <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-slate-300">No Executive Notes Found</p>
+          <p className="text-xs text-slate-500 mt-1">No notes match the selected category or search query.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {subTopics.map((sub) => (
+            <Card key={sub.id} className="p-4 bg-slate-900/90 border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Badge variant="gold" className="font-mono">
+                    {sub.id}
+                  </Badge>
+                  <h3 className="text-xs font-bold text-slate-100">{sub.title}</h3>
+                </div>
+                <Badge variant="neutral">{sub.category}</Badge>
               </div>
-              <Badge variant="neutral">{sub.category}</Badge>
-            </div>
 
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
-                Key Discussion & Evidence Points:
-              </span>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {sub.key_points.map((pt, pIdx) => {
-                  const [titlePart, ...rest] = pt.split(": ");
-                  const descPart = rest.join(": ");
-                  return (
-                    <div
-                      key={pIdx}
-                      className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 flex items-start gap-2.5 text-xs leading-relaxed"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0 mt-2" />
-                      <div>
-                        <strong className="text-slate-200 font-bold">{titlePart}: </strong>
-                        <span className="text-slate-300">{descPart || titlePart}</span>
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                  Key Discussion & Evidence Points:
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {sub.key_points.map((pt, pIdx) => {
+                    const [titlePart, ...rest] = pt.split(": ");
+                    const descPart = rest.join(": ");
+                    return (
+                      <div
+                        key={pIdx}
+                        className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 flex items-start gap-2.5 text-xs leading-relaxed"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0 mt-2" />
+                        <div>
+                          <strong className="text-slate-200 font-bold">{titlePart}: </strong>
+                          <span className="text-slate-300">{descPart || titlePart}</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

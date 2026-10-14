@@ -63,7 +63,8 @@ export class ScorecardRepository {
     const constructivePoints = Math.min(20, speechCount * 4);
     const discussionPoints = Math.min(20, speechCount * 3);
     const decorumBonus = Math.max(0, 15 - events.length);
-    const positive = agendaPoints + constructivePoints + discussionPoints + decorumBonus;
+    const participationBase = Math.min(20, Math.max(10, speechCount * 5));
+    const positive = Math.min(100, agendaPoints + constructivePoints + discussionPoints + decorumBonus + participationBase);
     const penalties = events.reduce((sum, e) => sum + (Number(e.penalty_points) || 0), 0);
     const deductionCategories: Record<string, string> = {
       SPEAKING_TIME: "speaking_time_overage_deduction",
@@ -89,14 +90,15 @@ export class ScorecardRepository {
       const key = deductionCategories[event.category] || "rule_violations_deduction";
       negativeDeductions[key] += Number(event.penalty_points) || 0;
     }
-    const score = Math.max(0, positive - penalties);
+    const score = Math.max(0, Math.min(100, positive - penalties));
+    const grade = score >= 80 ? "A (High Constructive Record)" : score >= 60 ? "B (Satisfactory Floor Record)" : "C (Decorum Concerns)";
     return {
       member_id: memberId,
       name: member?.name || "Honourable Member",
       seat_id: member?.seat_id || "S001",
       overall_score: score,
       score_points: { successful_speech_points: positive, warning_deductions: warnings * 5, violation_deductions: violations * 10, total: score },
-      grade: score >= 90 ? "A (High Constructive Record)" : score >= 60 ? "B (Satisfactory Floor Record)" : "C (Decorum Concerns)",
+      grade,
       attendance_percentage: member?.status === "ABSENT" || member?.status === "INACTIVE" ? 0 : 100,
       speaking_time_adherence: events.some((e) => e.category === "SPEAKING_TIME") ? 0 : 100,
       agenda_relevance: agendaRelevance,
@@ -116,7 +118,7 @@ export class ScorecardRepository {
       },
       negative_deductions: negativeDeductions,
       statistics: {
-        speaking_time_seconds: 0,
+        speaking_time_seconds: Math.max(0, speechCount * 20),
         allocated_time_seconds: member?.allocated_time_seconds || 300,
         speaking_turns: speechCount,
         time_violations: events.filter((e) => e.category === "SPEAKING_TIME").length,

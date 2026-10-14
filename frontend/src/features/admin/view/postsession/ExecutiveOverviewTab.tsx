@@ -3,7 +3,7 @@ import { CompleteSessionSummary } from '../../../../shared/types';
 import { StatWidget } from '../../../../components/common/StatWidget';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/common/Card';
 import { Badge } from '../../../../components/common/Badge';
-import { ShieldAlert, Users, Clock, MessageSquare, AlertCircle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, Clock, MessageSquare, AlertCircle } from 'lucide-react';
 
 interface ExecutiveOverviewTabProps {
   summary: CompleteSessionSummary;
@@ -58,17 +58,27 @@ export const ExecutiveOverviewTab: React.FC<ExecutiveOverviewTabProps> = ({ summ
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(violation_summary.types_breakdown).map(([category, count]) => (
-              <div key={category} className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                <div className="text-[11px] text-slate-400 truncate">{category}</div>
-                <div className="text-lg font-bold font-mono text-slate-100 mt-1 flex items-baseline gap-1">
-                  <span>{count}</span>
-                  <span className="text-[10px] font-normal text-slate-500">incidents</span>
-                </div>
+          {Object.entries(violation_summary.types_breakdown || {}).length === 0 ? (
+            <div className="p-4 rounded-lg bg-emerald-950/20 border border-emerald-800/40 flex items-center gap-3 text-emerald-300">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-emerald-200">Exemplary Chamber Decorum Maintained</div>
+                <div className="text-[11px] text-slate-400">No rule violations or decorum infractions were flagged during this parliamentary sitting.</div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(violation_summary.types_breakdown).map(([category, count]) => (
+                <div key={category} className="p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <div className="text-[11px] text-slate-400 truncate">{category}</div>
+                  <div className="text-lg font-bold font-mono text-slate-100 mt-1 flex items-baseline gap-1">
+                    <span>{count}</span>
+                    <span className="text-[10px] font-normal text-slate-500">incidents</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

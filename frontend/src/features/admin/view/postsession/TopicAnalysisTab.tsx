@@ -1,8 +1,8 @@
 import React from 'react';
 import { AgendaTopic } from '../../../../shared/types';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/common/Card';
+import { Card, CardTitle } from '../../../../components/common/Card';
 import { Badge } from '../../../../components/common/Badge';
-import { Clock } from 'lucide-react';
+import { Clock, Calendar } from 'lucide-react';
 
 export type AnalyzedAgendaTopic = AgendaTopic & {
   speeches_count?: number;
@@ -11,10 +11,20 @@ export type AnalyzedAgendaTopic = AgendaTopic & {
 };
 
 interface TopicAnalysisTabProps {
-  topics: (AnalyzedAgendaTopic | AgendaTopic)[];
+  topics?: (AnalyzedAgendaTopic | AgendaTopic)[];
 }
 
-export const TopicAnalysisTab: React.FC<TopicAnalysisTabProps> = ({ topics }) => {
+export const TopicAnalysisTab: React.FC<TopicAnalysisTabProps> = ({ topics = [] }) => {
+  if (!topics || topics.length === 0) {
+    return (
+      <div className="p-8 text-center rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
+        <Calendar className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+        <p className="text-sm font-semibold text-slate-300">No Agenda Topics Configured</p>
+        <p className="text-xs text-slate-500 mt-1">No legislative topics were recorded for this session.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {topics.map((t) => (

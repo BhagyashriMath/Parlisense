@@ -4,7 +4,7 @@ import { SearchBar } from '../../../../components/common/SearchBar';
 import { Card } from '../../../../components/common/Card';
 import { Badge } from '../../../../components/common/Badge';
 import { Button } from '../../../../components/common/Button';
-import { Award, BookOpen, Lightbulb } from 'lucide-react';
+import { Award, BookOpen, Lightbulb, Users } from 'lucide-react';
 
 interface MemberScorecardsTabProps {
   members: MemberSessionSummary[];
@@ -38,8 +38,15 @@ export const MemberScorecardsTab: React.FC<MemberScorecardsTabProps> = ({
       </div>
 
       {/* Grid of Modular Member Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {members.map((m) => {
+      {members.length === 0 ? (
+        <div className="p-8 text-center rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
+          <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-slate-300">No Members Match the Current Filter</p>
+          <p className="text-xs text-slate-500 mt-1">Try refining or clearing your search query.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {members.map((m) => {
           const pos = m.positive_marks || {
             agenda_relevance_points: 0,
             constructive_proposals_points: 0,
@@ -256,6 +263,7 @@ export const MemberScorecardsTab: React.FC<MemberScorecardsTabProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };

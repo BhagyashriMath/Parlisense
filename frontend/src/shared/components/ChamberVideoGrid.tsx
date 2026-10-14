@@ -525,6 +525,23 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
           </div>
         )}
       </div>
+
+      {/* Persistent audio playback elements for all connected remote chamber participants */}
+      <div className="hidden" aria-hidden="true">
+        {Object.entries(remoteStreams).map(([peerId, rStream]) => (
+          <audio
+            key={peerId}
+            autoPlay
+            playsInline
+            ref={(audioEl) => {
+              if (audioEl && audioEl.srcObject !== rStream) {
+                audioEl.srcObject = rStream;
+                audioEl.play().catch(() => {});
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };

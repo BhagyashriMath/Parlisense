@@ -17,7 +17,9 @@ import {
   BookOpen,
   Users,
   Calendar,
-  Award
+  Award,
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 
 interface PostSessionSummaryProps {
@@ -28,11 +30,44 @@ export function PostSessionSummary({ onStartNewConfig }: PostSessionSummaryProps
   const { openScorecard, openReport } = useParliament();
   const vm = usePostSessionViewModel();
 
-  if (vm.isLoading || !vm.summaryData) {
+  if (vm.isLoading) {
     return <LoadingState message="Synthesizing Post-Session Parliamentary Analytics & Scorecards..." />;
   }
 
+  if (vm.error || !vm.summaryData) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-900 border border-slate-800 rounded-xl text-center">
+        <div className="p-3 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 mb-3">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-sm font-bold text-slate-100">Unable to Load Post-Session Summary</h2>
+        <p className="text-xs text-slate-400 mt-1 max-w-md">
+          {vm.error || "The session report data is currently unavailable. Please verify the backend server status."}
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            variant="gold"
+            size="sm"
+            onClick={vm.loadSummary}
+            icon={<RotateCcw className="w-3.5 h-3.5" />}
+          >
+            Retry Loading Summary
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onStartNewConfig}
+          >
+            Return to Pre-Session
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const { session_information, member_wise_summary, topic_wise_summary } = vm.summaryData;
+
+  const totalDiscussionPoints = vm.filteredSubTopics.reduce((acc, curr) => acc + curr.key_points.length, 0);
 
   const tabs: TabItem[] = [
     {
@@ -44,19 +79,19 @@ export function PostSessionSummary({ onStartNewConfig }: PostSessionSummaryProps
       id: "summary_points",
       label: "Executive Summary Notes",
       icon: <BookOpen className="w-3.5 h-3.5" />,
-      badge: 20
+      badge: totalDiscussionPoints
     },
     {
       id: "members",
       label: "Member Scorecards & Roster",
       icon: <Users className="w-3.5 h-3.5" />,
-      badge: member_wise_summary.length
+      badge: member_wise_summary?.length || 0
     },
     {
       id: "topics",
       label: "Topic-Wise Analysis",
       icon: <Calendar className="w-3.5 h-3.5" />,
-      badge: topic_wise_summary.length
+      badge: topic_wise_summary?.length || 0
     }
   ];
 

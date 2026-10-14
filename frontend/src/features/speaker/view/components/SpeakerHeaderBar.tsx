@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, Flag, Volume2, ShieldAlert, FileText, Play, Pause, Calendar, User } from 'lucide-react';
+import { Mic, MicOff, Flag, Volume2, ShieldAlert, FileText, Play, Pause, Calendar, User } from 'lucide-react';
 import { SessionTelemetry } from '../../../../shared/types';
 import { Button } from '../../../../components/common/Button';
 
@@ -16,6 +16,8 @@ interface SpeakerHeaderBarProps {
   isPaused?: boolean;
   isEndingSession?: boolean;
   isStartingSession?: boolean;
+  isMicActive?: boolean;
+  onToggleMic?: () => void;
   onOpenReport?: () => void;
   onEndSession: () => void;
   onStartSession?: () => void;
@@ -35,6 +37,8 @@ export const SpeakerHeaderBar: React.FC<SpeakerHeaderBarProps> = ({
   isPaused = false,
   isEndingSession = false,
   isStartingSession = false,
+  isMicActive = false,
+  onToggleMic,
   onOpenReport,
   onEndSession,
   onStartSession,
@@ -52,7 +56,21 @@ export const SpeakerHeaderBar: React.FC<SpeakerHeaderBarProps> = ({
           <div>
             <p className="text-[9px] text-amber-400 font-semibold uppercase tracking-wider">Presiding Officer</p>
             <p className="text-sm font-black text-slate-100 leading-tight">Hon. Speaker</p>
-            <p className="text-[9px] text-slate-400 hidden sm:block">Pro-Tem Authority Console</p>
+            {onToggleMic && (
+              <button
+                id="speaker-dais-mic-btn"
+                onClick={onToggleMic}
+                className={`mt-1 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border transition-all cursor-pointer ${
+                  isMicActive
+                    ? "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse"
+                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                }`}
+                title={isMicActive ? "Mute Speaker Dais Microphone" : "Turn On Speaker Dais Microphone"}
+              >
+                {isMicActive ? <MicOff className="w-2.5 h-2.5 text-rose-400" /> : <Mic className="w-2.5 h-2.5 text-emerald-400" />}
+                <span>{isMicActive ? "Dais Mic LIVE" : "Turn On Mic"}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

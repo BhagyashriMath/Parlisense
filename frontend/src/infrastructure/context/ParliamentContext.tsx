@@ -24,6 +24,12 @@ import {
   simulateAIEvent as apiSimulateAIEvent,
   sendAudioTelemetry
 } from "../api/api";
+import {
+  setChamberMuted,
+  playChamberAlertChime,
+  speakAlert,
+  speakFloorSpeech
+} from "../../shared/utils/chamberAudio";
 
 export interface ParliamentContextType {
   telemetry: SessionTelemetry | null;
@@ -147,10 +153,72 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    setChamberMuted(isMuted);
+  }, [isMuted]);
+
+  useEffect(() => {
     refreshMembers();
+
+    const seenTranscriptIds = new Set<string>();
+    const seenAlertIds = new Set<string>();
+    let initialSyncDone = false;
 
     const unsubscribe = subscribeToSessionStream((data) => {
       setTelemetry(data);
+
+      if (!initialSyncDone) {
+        // Prime seen sets with historical data on initial load
+        (data.recent_transcripts || []).forEach((t) => seenTranscriptIds.add(t.id));
+        (data.recent_alerts || []).forEach((a) => seenAlertIds.add(a.alert_id));
+        initialSyncDone = true;
+        return;
+      }
+
+      const currentMemberId = currentUserRef.current?.memberId || selectedMemberIdRef.current;
+      const isUserSpeaker = currentUserRef.current?.role === "speaker";
+
+      // 1. Live Floor Speech Audio Playback:
+      // When a member or speaker delivers floor speech and STT publishes a transcript snippet,
+      // all other listening participants in the chamber MUST audibly hear it.
+      (data.recent_transcripts || []).forEach((t) => {
+        if (!seenTranscriptIds.has(t.id)) {
+          seenTranscriptIds.add(t.id);
+
+          const isSelf =
+            (currentMemberId && t.member_id === currentMemberId) ||
+            (isUserSpeaker && (t.member_id?.startsWith("SP") || t.seat_id === "CHAMBER-DAIS" || t.name?.toLowerCase().includes("speaker")));
+
+          if (!isSelf && t.text && t.text.trim().length > 1) {
+            const isSpeakerRole =
+              t.member_id?.startsWith("SP") ||
+              t.seat_id?.includes("DAIS") ||
+              t.name?.toLowerCase().includes("speaker");
+
+            speakFloorSpeech(t.text, t.member_id, t.name, isSpeakerRole);
+          }
+        }
+      });
+
+      // 2. Live Decorum Alerts & Warnings Audio:
+      // When rule infractions occur, play the alert chime and voice the warning message.
+      (data.recent_alerts || []).forEach((a) => {
+        if (!seenAlertIds.has(a.alert_id)) {
+          seenAlertIds.add(a.alert_id);
+
+          const isTargetedToMe = !a.member_id || a.member_id === currentMemberId || a.seat_id === currentMemberId;
+          const isChamberWide = !a.member_id && !a.seat_id;
+          const shouldPlayForUser = isTargetedToMe || isChamberWide || isUserSpeaker;
+
+          if (shouldPlayForUser) {
+            playChamberAlertChime(a.severity);
+            const alertMsg = a.member_audio_message || a.description || a.title;
+            if (alertMsg) {
+              const isCritical = a.severity === "CRITICAL" || a.severity === "HIGH";
+              speakAlert(alertMsg, a.rule_id || a.type || "alert", isCritical);
+            }
+          }
+        }
+      });
     });
 
     return () => unsubscribe();
@@ -231,10 +299,12 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
             for (let i = event.resultIndex; i < event.results.length; i++) {
               const text = event.results[i][0].transcript.trim();
               if (event.results[i].isFinal) {
-                if (text.length > 3) {
+                if (text.length >= 2) {
                   const activeFloorMemberId = telemetryRef.current?.active_speaker?.member_id;
                   const isUserSpeakerRole = currentUserRef.current?.role === "speaker";
-                  const currentMemberId = currentUserRef.current?.memberId || selectedMemberIdRef.current;
+                  const currentMemberId = isUserSpeakerRole
+                    ? (currentUserRef.current?.memberId || "SP001")
+                    : (currentUserRef.current?.memberId || selectedMemberIdRef.current);
                   const hasFloorPermission = isUserSpeakerRole || (!!activeFloorMemberId && currentMemberId === activeFloorMemberId);
 
                   if (hasFloorPermission) {

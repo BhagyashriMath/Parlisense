@@ -55,10 +55,32 @@ export function useChamberVideo(sessionId: string | undefined, enabled: boolean,
   }, [enabled, cameraPending, stopCamera]);
 
   // Keep the shared chamber audio track in sync with the single mic control.
-  // Web Speech recognition is local-only; this track is what other members hear.
+  // When mic is turned on, ensure an audio track is published even if camera is off.
   useEffect(() => {
-    streamRef.current?.getAudioTracks().forEach(track => { track.enabled = micEnabled; });
-  }, [micEnabled]);
+    if (micEnabled) {
+      if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach(track => { track.enabled = true; });
+      } else if (navigator.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then((aStream) => {
+            if (!streamRef.current && micEnabled) {
+              streamRef.current = aStream;
+              publish.current(aStream);
+            }
+          })
+          .catch(() => {});
+      }
+    } else {
+      if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach(track => { track.enabled = false; });
+        if (!localStream) {
+          streamRef.current.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
+          publish.current(null);
+        }
+      }
+    }
+  }, [micEnabled, localStream]);
 
   useEffect(() => {
     // Speaker sessions restored from older logins can omit memberId. The

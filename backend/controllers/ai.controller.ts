@@ -44,24 +44,46 @@ export class AiController {
     let transcript;
     if (typeof transcript_snippet === "string" && transcript_snippet.trim().length > 3) {
       const activeSpeakerId = telemetryService.getState().activeSpeakerId;
-      // Single-speaker floor enforcement: only the recognized floor speaker may address the House
-      if (!activeSpeakerId) {
-        res.json({ status: "NO_ACTIVE_SPEAKER_RECOGNIZED" });
-        return;
+      const user = req.user;
+      const isUserSpeaker = user?.role === "speaker";
+      const targetMember = member_id ? await memberService.getById(member_id) : null;
+      const isSpeakerMember =
+        isUserSpeaker ||
+        targetMember?.role?.toLowerCase().includes("speaker") ||
+        targetMember?.role?.toLowerCase().includes("presiding") ||
+        member_id?.startsWith("SP");
+
+      let speakingMember: any = null;
+
+      if (isSpeakerMember) {
+        // Presiding Officer (Speaker) has inherent authority to address the House from the Dais at any time
+        speakingMember = targetMember || (await memberService.getAll()).find(m => m.role?.toLowerCase().includes("speaker")) || {
+          member_id: member_id || "SP001",
+          seat_id: "CHAMBER-DAIS",
+          name: user?.name || "Hon. Speaker",
+          role: "Speaker"
+        };
+      } else {
+        // Floor Member: strictly enforce single-speaker rule
+        if (!activeSpeakerId) {
+          res.json({ status: "NO_ACTIVE_SPEAKER_RECOGNIZED" });
+          return;
+        }
+        if (member_id && member_id !== activeSpeakerId) {
+          res.status(403).json({ status: "UNAUTHORIZED_SPEAKER_BLOCKED", message: "Only the recognized floor speaker may address the House." });
+          return;
+        }
+        speakingMember = await memberService.getById(activeSpeakerId) || memberService.getCachedAll()[0];
       }
-      if (member_id && member_id !== activeSpeakerId) {
-        res.status(403).json({ status: "UNAUTHORIZED_SPEAKER_BLOCKED", message: "Only the recognized floor speaker may address the House." });
-        return;
-      }
-      const member = await memberService.getById(activeSpeakerId) || memberService.getCachedAll()[0];
-      if (member) {
+
+      if (speakingMember) {
         transcript = await transcriptRepository.save({
           id: `tr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           session_id: telemetryService.getState().sessionId,
-          member_id: member.member_id,
-          seat_id: member.seat_id,
+          member_id: speakingMember.member_id,
+          seat_id: speakingMember.seat_id,
           text: transcript_snippet.trim(),
-          confidence: 0.9,
+          confidence: 0.95,
           emotion: "Neutral",
           relevance: aiService.analyzeSpeechRelevance(transcript_snippet).score
         });

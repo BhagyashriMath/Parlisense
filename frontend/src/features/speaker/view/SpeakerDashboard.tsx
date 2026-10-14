@@ -15,7 +15,7 @@ import { ScheduleSessionModal } from './components/ScheduleSessionModal';
 import { useParliament } from '../../../infrastructure/context/ParliamentContext';
 
 export function SpeakerDashboard() {
-  const { liveMicDb, isMicActive, currentUser } = useParliament();
+  const { liveMicDb, isMicActive, setIsMicActive, currentUser } = useParliament();
   const [activeMobileView, setActiveMobileView] = React.useState<"floor" | "decorum" | "roster">("floor");
   const {
     telemetry,
@@ -156,6 +156,8 @@ export function SpeakerDashboard() {
         onEndSession={endSessionAndGenerateReport}
         onStartSession={startSession}
         onTogglePause={handleTogglePause}
+        isMicActive={isMicActive}
+        onToggleMic={() => setIsMicActive(!isMicActive)}
         onOpenSchedule={() => setIsScheduleModalOpen(true)}
       />
 

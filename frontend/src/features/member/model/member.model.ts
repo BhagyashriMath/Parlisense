@@ -2,26 +2,8 @@
  * Member Domain Model & Audio Synthesizer Logic
  */
 
-const lastSpokenMap: Record<string, number> = {};
+export { speakMessage, speakAlert, speakFloorSpeech } from "../../../shared/utils/chamberAudio";
 
-export function speakMessage(
-  text: string,
-  category: string = "general",
-  cooldownMs: number = 8000
-) {
-  if (!text || !("speechSynthesis" in window)) return;
-  const now = Date.now();
-  if (lastSpokenMap[category] && now - lastSpokenMap[category] < cooldownMs) {
-    return;
-  }
-  lastSpokenMap[category] = now;
-  window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = "en-IN";
-  utt.rate = 0.92;
-  utt.volume = 1;
-  window.speechSynthesis.speak(utt);
-}
 
 export function calculateMemberTimeMetrics(
   usedSeconds: number,

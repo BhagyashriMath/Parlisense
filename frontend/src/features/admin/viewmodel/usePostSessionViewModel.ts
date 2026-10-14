@@ -81,6 +81,7 @@ export const POINT_CATEGORIES = [
 export function usePostSessionViewModel() {
   const [summaryData, setSummaryData] = useState<CompleteSessionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [memberFilter, setMemberFilter] = useState("");
   const [activeSection, setActiveSection] = useState<PostSessionSection>("overview");
   const [pointCategoryFilter, setPointCategoryFilter] = useState("ALL");
@@ -88,11 +89,13 @@ export function usePostSessionViewModel() {
 
   const loadSummary = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await fetchCompleteSessionSummary();
       setSummaryData(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load complete session summary:", err);
+      setError(err?.message || "Failed to load complete session summary. Please check connection.");
     } finally {
       setIsLoading(false);
     }
@@ -145,6 +148,7 @@ export function usePostSessionViewModel() {
   return {
     summaryData,
     isLoading,
+    error,
     memberFilter,
     setMemberFilter,
     activeSection,
