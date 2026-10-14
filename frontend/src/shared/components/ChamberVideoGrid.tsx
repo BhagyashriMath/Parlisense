@@ -23,6 +23,22 @@ interface ChamberVideoGridProps {
   memberCameras?: boolean;
 }
 
+function RemoteAudioPlayer({ stream }: { stream: MediaStream }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !stream) return;
+    el.srcObject = stream;
+    el.play().catch((err) => {
+      console.warn("Autoplay remote audio notice:", err?.message || err);
+    });
+    return () => {
+      el.srcObject = null;
+    };
+  }, [stream]);
+  return <audio ref={audioRef} autoPlay playsInline />;
+}
+
 function ParticipantVideo({ stream, local }: { stream: MediaStream; local: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -32,9 +48,8 @@ function ParticipantVideo({ stream, local }: { stream: MediaStream; local: boole
     video.play().catch(() => {});
     return () => { video.srcObject = null; };
   }, [stream]);
-  // Mute only the local preview. Remote participant tracks carry audio and
-  // must remain audible so members can hear the recognized floor speaker.
-  return <video ref={ref} playsInline autoPlay muted={local} className={`w-full h-full object-cover ${local ? "mirror-mode" : ""}`} />;
+  // Video element remains muted so RemoteAudioPlayer handles the audio stream without duplication
+  return <video ref={ref} playsInline autoPlay muted={true} className={`w-full h-full object-cover ${local ? "mirror-mode" : ""}`} />;
 }
 
 export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
@@ -85,6 +100,8 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
   const isLocalUserMember = currentUser?.role === "member";
   // Selecting a floor member must never replace the Speaker's own identity.
   const currentMemberId = currentUser?.memberId || (isLocalUserMember ? selectedMemberId : undefined);
+  // Floor speaking permission: Presiding Speaker OR recognized active floor member (only one can speak)
+  const isLocalUserOnFloor = isLocalUserSpeaker || (isLocalUserMember && isSessionLive && telemetry?.active_speaker?.member_id === currentMemberId);
 
   // Speaker participant card & floor deduplication
   // If Karthik or anyone is Speaker, they sit on the Dais and must NOT be duplicated in floor member cards
@@ -366,18 +383,36 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
             </span>
           )}
 
-          {/* Start / Stop Mic Button */}
+          {/* Start / Stop Mic Button (Single-speaker floor discipline) */}
           <button
             id="chamber-grid-toggle-mic-btn"
-            onClick={() => setIsMicActive(!isMicActive)}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              isMicActive
-                ? "bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30"
-                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+            disabled={!isLocalUserOnFloor}
+            onClick={() => {
+              if (isLocalUserOnFloor) {
+                setIsMicActive(!isMicActive);
+              }
+            }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+              !isLocalUserOnFloor
+                ? "opacity-45 cursor-not-allowed bg-slate-800 text-slate-400 border-slate-700"
+                : isMicActive
+                ? "bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30 cursor-pointer"
+                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 cursor-pointer"
             }`}
-            title={isMicActive ? "Mute / Turn off personal microphone" : "Unmute / Turn on personal microphone"}
+            title={
+              !isLocalUserOnFloor
+                ? "Floor speaking permission required. Only one member may speak at a time. Raise your hand to seek floor recognition."
+                : isMicActive
+                ? "Mute / Turn off personal microphone"
+                : "Unmute / Turn on personal microphone"
+            }
           >
-            {isMicActive ? (
+            {!isLocalUserOnFloor ? (
+              <>
+                <MicOff className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Mic Locked</span>
+              </>
+            ) : isMicActive ? (
               <>
                 <MicOff className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Stop Mic</span>
@@ -487,6 +522,14 @@ export const ChamberVideoGrid: React.FC<ChamberVideoGridProps> = ({
             )}
           </div>
         )}
+      </div>
+
+      {/* Background Remote Audio Players: ensure all remote participant speech is ALWAYS audible,
+          including when memberCameras={false} on Speaker Dashboard or when cameras are turned off */}
+      <div className="hidden" aria-hidden="true">
+        {Object.entries(remoteStreams).map(([peerId, rStream]) => (
+          <RemoteAudioPlayer key={`remote-audio-${peerId}`} stream={rStream} />
+        ))}
       </div>
     </div>
   );

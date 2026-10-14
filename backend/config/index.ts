@@ -15,14 +15,17 @@ const currentDir = typeof __dirname !== "undefined"
   ? __dirname
   : process.cwd();
 
-// Find data directory priority: backend/data, process.cwd()/data, ../data
+// Find project root data directory (containing members.json and parliament.sqlite)
 const candidateDataDirs = [
-  path.resolve(currentDir, "data"),
-  path.resolve(currentDir, "..", "data"),
   path.resolve(process.cwd(), "data"),
-  path.resolve(process.cwd(), "..", "data")
+  path.resolve(process.cwd(), "..", "data"),
+  path.resolve(currentDir, "..", "data"),
+  path.resolve(currentDir, "..", "..", "data"),
+  path.resolve(currentDir, "data")
 ];
-export const DATA_DIR = candidateDataDirs.find(d => fs.existsSync(d)) || path.resolve(process.cwd(), "data");
+export const DATA_DIR = candidateDataDirs.find(d => fs.existsSync(path.join(d, "members.json")) || fs.existsSync(path.join(d, "parliament.sqlite")))
+  || candidateDataDirs.find(d => fs.existsSync(d))
+  || path.resolve(process.cwd(), "data");
 
 export const ROOT_DIR = path.resolve(DATA_DIR, "..");
 export const RULES_DIR = fs.existsSync(path.resolve(ROOT_DIR, "ml", "rules"))

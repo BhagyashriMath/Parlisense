@@ -121,16 +121,23 @@ export const MemberProfileBanner: React.FC<MemberProfileBannerProps> = ({
           Scorecard
         </Button>
 
-        <Button
-          variant={myExitRequest ? "secondary" : "danger"}
-          size="sm"
-          onClick={onOpenEmergencyModal}
-          disabled={Boolean(myExitRequest && myExitRequest.status === "PENDING")}
-          icon={<AlertTriangle className="w-3.5 h-3.5" />}
-          className="flex-1 sm:flex-none justify-center text-xs"
-        >
-          {myExitRequest && myExitRequest.status === "PENDING" ? "Exit Pending" : "Emergency Exit"}
-        </Button>
+        {myExitRequest?.status === "APPROVED" ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold font-mono shadow-sm animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span>EXIT APPROVED BY SPEAKER ✓</span>
+          </div>
+        ) : (
+          <Button
+            variant={myExitRequest?.status === "PENDING" ? "secondary" : "danger"}
+            size="sm"
+            onClick={onOpenEmergencyModal}
+            disabled={Boolean(myExitRequest && myExitRequest.status === "PENDING")}
+            icon={<AlertTriangle className="w-3.5 h-3.5" />}
+            className="flex-1 sm:flex-none justify-center text-xs"
+          >
+            {myExitRequest?.status === "PENDING" ? "Exit Pending..." : "Emergency Exit"}
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Member, MemberScorecard } from '../../../../shared/types';
-import { MemberSelfCamera } from '../MemberSelfCamera';
 import { Button } from '../../../../components/common/Button';
 import { ShieldAlert, LogOut } from 'lucide-react';
 
@@ -85,25 +84,6 @@ export const SuspensionFullscreenView: React.FC<SuspensionFullscreenViewProps> =
         >
           ACKNOWLEDGE & LEAVE TERMINAL
         </Button>
-      </div>
-
-      {/* Exit Proctoring Corner Camera Feed */}
-      <div className="fixed bottom-6 right-6 w-72 sm:w-80 h-48 sm:h-56 rounded-2xl border-2 border-red-500 bg-slate-950 p-2 shadow-2xl flex flex-col z-50 hidden md:flex">
-        <div className="flex items-center justify-between text-[10px] text-red-400 font-bold mb-1">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-            EXIT PROCTORING FEED
-          </span>
-          <span className="font-mono">{currentMember.camera_id || `CAM-${currentMember.seat_id}`}</span>
-        </div>
-        <div className="flex-1 min-h-0 rounded overflow-hidden">
-          <MemberSelfCamera
-            memberId={currentMember.member_id}
-            seatId={currentMember.seat_id}
-            micId={currentMember.mic_id || `MIC-${currentMember.seat_id}`}
-            memberName={currentMember.name}
-          />
-        </div>
       </div>
     </div>
   );

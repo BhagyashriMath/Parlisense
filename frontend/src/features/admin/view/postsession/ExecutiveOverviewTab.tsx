@@ -10,7 +10,33 @@ interface ExecutiveOverviewTabProps {
 }
 
 export const ExecutiveOverviewTab: React.FC<ExecutiveOverviewTabProps> = ({ summary }) => {
-  const { session_information, session_activity, violation_summary } = summary;
+  const session_information: CompleteSessionSummary['session_information'] = summary.session_information || {
+    session_id: "PARL-SESSION",
+    date: new Date().toLocaleDateString(),
+    house_chamber: "Lok Sabha Chamber",
+    session_type: "Regular Legislative Sitting",
+    start_time: "10:00 AM",
+    end_time: "11:00 AM",
+    total_duration: "1h 00m",
+    number_of_members: 0,
+    number_of_topics: 0
+  };
+  const session_activity = summary.session_activity || {
+    total_speeches: 0,
+    total_speaking_time_formatted: "0m",
+    total_speaking_time_seconds: 0,
+    average_speaking_time_formatted: "0s",
+    number_of_active_members: 0,
+    number_of_members_present: 0
+  };
+  const violation_summary = summary.violation_summary || {
+    total_violations: 0,
+    low_violations: 0,
+    medium_violations: 0,
+    high_violations: 0,
+    critical_violations: 0,
+    types_breakdown: {}
+  };
 
   return (
     <div className="space-y-4">
@@ -59,7 +85,7 @@ export const ExecutiveOverviewTab: React.FC<ExecutiveOverviewTabProps> = ({ summ
         </CardHeader>
         <CardContent className="p-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(violation_summary.types_breakdown).map(([category, count]) => (
+            {Object.entries(violation_summary.types_breakdown || {}).map(([category, count]) => (
               <div key={category} className="p-3 rounded-lg bg-slate-950 border border-slate-800">
                 <div className="text-[11px] text-slate-400 truncate">{category}</div>
                 <div className="text-lg font-bold font-mono text-slate-100 mt-1 flex items-baseline gap-1">

@@ -16,6 +16,7 @@ import type {
   CameraViewMode
 } from "../model/speaker.types";
 import { calculateSpeakingProgress } from "../model/speaker.model";
+import { playAlertChime, speakMessage } from "../../member/model/member.model";
 
 export function useSpeakerViewModel() {
   const {
@@ -141,6 +142,12 @@ export function useSpeakerViewModel() {
   const pushNotif = (n: Omit<SpeakerNotification, "id" | "timestamp">) => {
     const id = `${Date.now()}-${Math.random()}`;
     setNotifications((prev) => [{ ...n, id, timestamp: Date.now() }, ...prev].slice(0, 40));
+    if (n.type === "EMERGENCY" || n.severity === "CRITICAL") {
+      playAlertChime("critical");
+      speakMessage(n.description || n.title, "speaker_critical");
+    } else if (n.severity === "HIGH") {
+      playAlertChime("warning");
+    }
   };
 
   const handleConfirmSuspension = async (rec: {
