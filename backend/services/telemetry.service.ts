@@ -206,11 +206,33 @@ export class TelemetryService {
   }
 
   updateSeatPresence(seatId: string, occupied: boolean, movementStatus = "Normal") {
-    const seat = this.state.seatMovementStates[seatId];
-    if (!seat) return;
+    if (!seatId) return;
+    const num = (seatId.match(/\d+/) || [""])[0];
+    const matchingKey = Object.keys(this.state.seatMovementStates).find(
+      (k) => k === seatId || (num && (k.match(/\d+/) || [""])[0] === num)
+    ) || seatId;
+
+    const existing = this.state.seatMovementStates[matchingKey] || {
+      seatId: matchingKey,
+      occupied: true,
+      status: "Seated Correctly",
+      movementStatus: "Normal",
+      x: 18,
+      y: 28
+    };
+
+    const updated = {
+      ...existing,
+      seatId: matchingKey,
+      occupied,
+      movementStatus,
+      status: occupied ? (movementStatus === "Normal" ? "Seated Correctly" : "Moved Away") : "Absent"
+    };
+
     this.state.seatMovementStates = {
       ...this.state.seatMovementStates,
-      [seatId]: { ...seat, occupied, movementStatus, status: occupied ? (movementStatus === "Normal" ? "Seated Correctly" : "Moved Away") : "Absent" }
+      [matchingKey]: updated,
+      [seatId]: updated
     };
     this.broadcast();
   }

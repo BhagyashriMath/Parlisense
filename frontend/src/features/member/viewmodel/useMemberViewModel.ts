@@ -295,10 +295,17 @@ export function useMemberViewModel() {
     }
     prevOnFloor.current = onFloor;
   }, [telemetry?.is_active, telemetry?.is_paused, telemetry?.active_speaker?.member_id, currentMember.member_id]);
-  const seatInfo = telemetry?.vision_telemetry?.seat_status?.[currentMember.seat_id];
+  const seatStatusMap = telemetry?.vision_telemetry?.seat_status || {};
+  const currentSeatNum = (currentMember.seat_id?.match(/\d+/) || [""])[0];
+  const seatInfo = seatStatusMap[currentMember.seat_id] ||
+    Object.entries(seatStatusMap).find(([k]) => currentSeatNum && (k.match(/\d+/) || [""])[0] === currentSeatNum)?.[1];
   const isMoved =
+    seatInfo?.occupied === false ||
+    seatInfo?.status === "Absent" ||
     seatInfo?.movementStatus?.includes("Well Rush") ||
-    seatInfo?.movementStatus?.includes("Moved");
+    seatInfo?.movementStatus?.includes("Moved") ||
+    seatInfo?.movementStatus?.includes("Absent") ||
+    seatInfo?.status?.includes("Moved");
 
   // The member's desk is monitored: auto-enable the mic + live STT once while
   // the sitting is live, so the transcript box actually receives speech. A

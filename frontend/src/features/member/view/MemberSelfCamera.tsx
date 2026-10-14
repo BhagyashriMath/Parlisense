@@ -19,6 +19,13 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Camera, Video, VideoOff, CheckCircle2, User } from "lucide-react";
+import {
+  unpackCascade,
+  runCascade,
+  clusterDetections,
+  rgbaToGrayscale,
+  ClassifyRegionFn,
+} from "../../../utils/picoDetector";
 import { API_BASE } from "../../../infrastructure/api/api";
 
 interface MemberSelfCameraProps {
@@ -63,9 +70,43 @@ export function MemberSelfCamera({
   const prevFrameRef = useRef<ImageData | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const motionFrameCount = useRef(0);
+  const missingFaceFrameCount = useRef(0);
   const lastReportTime = useRef(0);
   const serverViolationActiveRef = useRef(false);
   const sampleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const faceDetectorRef = useRef<any>(null);
+  const classifyRegionRef = useRef<ClassifyRegionFn | null>(null);
+
+  // Load pico facefinder cascade from public directory on mount
+  useEffect(() => {
+    let cancelled = false;
+    const modelUrl = `${import.meta.env.BASE_URL || "/"}models/facefinder`.replace(/\/{2,}/g, "/");
+    fetch(modelUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        if (!cancelled) {
+          const bytes = new Int8Array(buffer);
+          classifyRegionRef.current = unpackCascade(bytes);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not load local facefinder cascade:", err);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "FaceDetector" in window) {
+      try {
+        faceDetectorRef.current = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      } catch {
+        faceDetectorRef.current = null;
+      }
+    }
+  }, []);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -90,7 +131,7 @@ export function MemberSelfCamera({
         await videoRef.current.play().catch(() => {});
       }
       setCameraActive(true);
-      setPresence((p) => ({ ...p, present: true, confidence: 0.9 }));
+      setPresence((p) => ({ ...p, present: false, confidence: 0.5 }));
     } catch (err: any) {
       const msg =
         err?.name === "NotAllowedError"
@@ -115,6 +156,7 @@ export function MemberSelfCamera({
     if (sampleTimerRef.current) clearInterval(sampleTimerRef.current);
     prevFrameRef.current = null;
     motionFrameCount.current = 0;
+    missingFaceFrameCount.current = 0;
     setCameraActive(false);
     setPresence({ present: false, movement: "NONE", seatCompliant: true, confidence: 0, lastViolation: null });
   }, []);
@@ -122,8 +164,9 @@ export function MemberSelfCamera({
   // ── Send presence/violation report to server ──
   const reportPresence = useCallback(async (violationType: string, confidence: number) => {
     const now = Date.now();
-    // Allow immediate recovery report without cooldown
-    if (violationType !== "NORMAL" && now - lastReportTime.current < REPORT_COOLDOWN_MS) return;
+    // Allow immediate recovery report and absence report without cooldown
+    const isStateTransition = violationType === "NORMAL" || violationType === "MEMBER_ABSENT";
+    if (!isStateTransition && now - lastReportTime.current < REPORT_COOLDOWN_MS) return;
     lastReportTime.current = now;
 
     try {
@@ -150,8 +193,8 @@ export function MemberSelfCamera({
     }
   }, [memberId, seatId, micId]);
 
-  // ── Frame-differencing motion detection ──
-  const sampleFrame = useCallback(() => {
+  // ── Frame-differencing motion & face presence detection ──
+  const sampleFrame = useCallback(async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.readyState < 2) return;
@@ -166,26 +209,85 @@ export function MemberSelfCamera({
     ctx.drawImage(video, 0, 0, W, H);
     const currentFrame = ctx.getImageData(0, 0, W, H);
 
-    // Presence check: if most pixels are very dark → no one in frame
-    let brightPixels = 0;
-    for (let i = 0; i < currentFrame.data.length; i += 4) {
-      const brightness = (currentFrame.data[i] + currentFrame.data[i + 1] + currentFrame.data[i + 2]) / 3;
-      if (brightness > 30) brightPixels++;
-    }
-    const presenceRatio = brightPixels / (W * H);
-    const isPresent = presenceRatio > 0.15; // at least 15% non-black pixels
+    // 1. Face visibility check
+    let isFaceDetected = false;
 
-    if (!isPresent) {
-      setPresence((p) => ({ ...p, present: false, movement: "NONE", seatCompliant: false, confidence: 0.85, lastViolation: "Member not detected in camera frame" }));
+    // A. Real-time sliding-window face cascade detection (pure TS pico detector)
+    if (classifyRegionRef.current) {
+      try {
+        const image = {
+          pixels: rgbaToGrayscale(currentFrame.data, H, W),
+          nrows: H,
+          ncols: W,
+          ldim: W,
+        };
+        const params = {
+          shiftfactor: 0.1,
+          minsize: 20,
+          maxsize: 75,
+          scalefactor: 1.15,
+        };
+        let dets = runCascade(image, classifyRegionRef.current, params);
+        dets = clusterDetections(dets, 0.2);
+        // Scores above 1.5 confirm a real facial structure (eyes, nose, mouth)
+        const confidentFaces = dets.filter((d: any) => d[3] > 1.5);
+        if (confidentFaces.length > 0) {
+          isFaceDetected = true;
+        }
+      } catch (err) {
+        console.warn("[MemberSelfCamera] pico detection error:", err);
+      }
+    }
+
+    // B. Native browser FaceDetector API if supported
+    if (!isFaceDetected && faceDetectorRef.current && canvas) {
+      try {
+        const faces = await faceDetectorRef.current.detect(canvas);
+        if (faces && faces.length > 0) {
+          isFaceDetected = true;
+        }
+      } catch {}
+    }
+
+    if (!isFaceDetected) {
+      missingFaceFrameCount.current++;
+    } else {
+      missingFaceFrameCount.current = 0;
+    }
+
+    const hasNoFace = missingFaceFrameCount.current >= 2; // 1.0s without face
+
+    if (hasNoFace) {
+      setPresence({
+        present: false,
+        movement: "NONE",
+        seatCompliant: false,
+        confidence: 0.95,
+        lastViolation: "No face visible in camera frame — marked NOT SEATED",
+      });
       motionFrameCount.current = 0;
       prevFrameRef.current = currentFrame;
 
-      // Report absence after cooldown
-      reportPresence("MEMBER_ABSENT", 0.85);
+      serverViolationActiveRef.current = true;
+      reportPresence("MEMBER_ABSENT", 0.95);
       return;
     }
 
-    // Motion detection via pixel differencing with designated boundary zone
+    // If face just returned from being not seated / absent:
+    if (!presence.present && isFaceDetected) {
+      setPresence((p) => ({
+        ...p,
+        present: true,
+        seatCompliant: true,
+        lastViolation: null,
+      }));
+      if (serverViolationActiveRef.current) {
+        serverViolationActiveRef.current = false;
+        reportPresence("NORMAL", 0.95);
+      }
+    }
+
+    // 2. Motion detection via pixel differencing with designated boundary zone
     if (prevFrameRef.current) {
       const prev = prevFrameRef.current;
       let diffPixels = 0;
@@ -246,7 +348,7 @@ export function MemberSelfCamera({
     }
 
     prevFrameRef.current = currentFrame;
-  }, [reportPresence]);
+  }, [reportPresence, presence.present]);
 
   // Start sampling when camera becomes active
   useEffect(() => {
@@ -329,16 +431,47 @@ export function MemberSelfCamera({
 
           {/* Designated Seating Boundary Guide Box Overlay */}
           {cameraActive && (
-            <div className="absolute inset-x-[10%] top-[6%] bottom-[20%] pointer-events-none rounded-lg border border-dashed border-sky-400/40 transition-colors duration-300">
-              <div className="absolute top-1 left-1.5 px-1.5 py-0.2 rounded bg-slate-950/85 border border-sky-500/30 text-[8px] font-mono font-bold text-sky-300 tracking-wider flex items-center gap-1 shadow-sm">
-                <span className={`w-1.5 h-1.5 rounded-full ${presence.movement === "SIGNIFICANT" ? "bg-rose-400 animate-ping" : presence.movement === "NORMAL" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                SEATING BOUNDARY
+            <div className={`absolute inset-x-[10%] top-[6%] bottom-[20%] pointer-events-none rounded-lg border transition-colors duration-300 ${
+              !presence.present
+                ? "border-rose-500/80 bg-rose-950/10 border-solid"
+                : presence.movement === "SIGNIFICANT"
+                ? "border-amber-400/60 border-dashed"
+                : "border-sky-400/40 border-dashed"
+            }`}>
+              <div className={`absolute top-1 left-1.5 px-1.5 py-0.2 rounded text-[8px] font-mono font-bold tracking-wider flex items-center gap-1 shadow-sm ${
+                !presence.present
+                  ? "bg-rose-950/90 border border-rose-500/60 text-rose-300"
+                  : "bg-slate-950/85 border border-sky-500/30 text-sky-300"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  !presence.present
+                    ? "bg-rose-500 animate-ping"
+                    : presence.movement === "SIGNIFICANT"
+                    ? "bg-amber-400 animate-ping"
+                    : presence.movement === "NORMAL"
+                    ? "bg-amber-400"
+                    : "bg-emerald-400"
+                }`} />
+                {!presence.present ? "NO FACE DETECTED" : "SEATING BOUNDARY"}
               </div>
               {/* Corner brackets */}
-              <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-sky-400" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-sky-400" />
-              <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-sky-400" />
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-sky-400" />
+              <div className={`absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 ${!presence.present ? "border-rose-500" : "border-sky-400"}`} />
+              <div className={`absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 ${!presence.present ? "border-rose-500" : "border-sky-400"}`} />
+              <div className={`absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 ${!presence.present ? "border-rose-500" : "border-sky-400"}`} />
+              <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 ${!presence.present ? "border-rose-500" : "border-sky-400"}`} />
+            </div>
+          )}
+
+          {/* Active violation warning banner inside camera viewport when face is not visible */}
+          {cameraActive && !presence.present && (
+            <div className="absolute top-2 left-2 right-2 p-1.5 rounded-lg bg-rose-950/95 border border-rose-500/80 text-rose-200 text-[10px] font-semibold flex items-center justify-between gap-1.5 shadow-lg backdrop-blur-sm z-20 animate-pulse">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0 animate-ping" />
+                <span className="truncate">⚠ VIOLATION: No face visible — Member marked NOT SEATED</span>
+              </span>
+              <span className="font-mono text-[8px] bg-rose-900/80 text-rose-300 px-1 py-0.2 rounded border border-rose-500/40 font-bold uppercase flex-shrink-0">
+                NOT SEATED
+              </span>
             </div>
           )}
 
@@ -380,13 +513,21 @@ export function MemberSelfCamera({
               </div>
               <div className="flex flex-col items-end flex-shrink-0">
                 <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
-                  presence.movement === "SIGNIFICANT"
+                  !presence.present
+                    ? "bg-rose-500/25 text-rose-300 border-rose-500/50 animate-pulse"
+                    : presence.movement === "SIGNIFICANT"
                     ? "bg-rose-500/20 text-rose-300 border-rose-500/30"
                     : presence.movement === "NORMAL"
                     ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
                     : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                 }`}>
-                  {presence.movement === "SIGNIFICANT" ? "MOVEMENT ⚠" : presence.movement === "NORMAL" ? "MOVING" : "SEATED ✓"}
+                  {!presence.present
+                    ? "NOT SEATED ✗"
+                    : presence.movement === "SIGNIFICANT"
+                    ? "MOVEMENT ⚠"
+                    : presence.movement === "NORMAL"
+                    ? "MOVING"
+                    : "SEATED ✓"}
                 </span>
                 <span className="text-[8px] text-slate-500 font-mono mt-0.5">
                   Confidence: {(presence.confidence * 100).toFixed(0)}%

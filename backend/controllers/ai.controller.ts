@@ -78,9 +78,13 @@ export class AiController {
       return;
     }
 
-    const wrongSeat = Boolean(seat_id && seat_id !== member?.seat_id);
+    const memberSeatNum = (member?.seat_id?.match(/\d+/) || [""])[0];
+    const incomingSeatNum = (seat_id?.match(/\d+/) || [""])[0];
+    const isSameSeat = !seat_id || !member?.seat_id || (memberSeatNum && incomingSeatNum && parseInt(memberSeatNum, 10) === parseInt(incomingSeatNum, 10)) || seat_id === member?.seat_id;
+
+    const wrongSeat = Boolean(seat_id && !isSameSeat);
     if ((violation_type || wrongSeat) && member) {
-      const effectiveViolation = wrongSeat ? "WRONG_SEAT_OCCUPANCY" : violation_type;
+      const effectiveViolation = violation_type === "MEMBER_ABSENT" ? "MEMBER_ABSENT" : (wrongSeat ? "WRONG_SEAT_OCCUPANCY" : violation_type);
       telemetryService.updateSeatPresence(
         resolvedSeatId || member.seat_id,
         effectiveViolation !== "MEMBER_ABSENT",
@@ -95,11 +99,19 @@ export class AiController {
         type: effectiveViolation,
         severity: effectiveViolation === "MEMBER_ABSENT" || wrongSeat ? "HIGH" : "MEDIUM",
         alert_level: effectiveViolation === "MEMBER_ABSENT" || wrongSeat ? 3 : 2,
-        title: effectiveViolation === "MEMBER_ABSENT" ? `Member Absent from Camera — ${member.name}` : wrongSeat ? `Wrong Seat Occupancy — ${member.name}` : `Significant Movement Detected — ${member.name}`,
+        title: effectiveViolation === "MEMBER_ABSENT"
+          ? `Member Absent — No Face Visible — ${member.name}`
+          : wrongSeat
+          ? `Wrong Seat Occupancy — ${member.name}`
+          : `Significant Movement Detected — ${member.name}`,
         description: wrongSeat
           ? `${member.name} was detected at ${seat_id}; assigned seat is ${member.seat_id}.`
+          : effectiveViolation === "MEMBER_ABSENT"
+          ? `Computer vision camera detected no face visible in assigned seat for ${member.name} (${resolvedSeatId || member.seat_id}). Member marked NOT SEATED.`
           : `Vision detected displacement for ${member.name} (Seat ${resolvedSeatId || member.seat_id}).`,
-        member_audio_message: "Please remain in your assigned seat position.",
+        member_audio_message: effectiveViolation === "MEMBER_ABSENT"
+          ? "No face detected in camera. Please return to your seat and face the camera."
+          : "Please remain in your assigned seat position.",
         suspension_recommended: false,
         source_module: "Member Presence Monitor",
         status: "ACTIVE"

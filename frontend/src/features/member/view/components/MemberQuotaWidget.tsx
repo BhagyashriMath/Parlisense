@@ -85,12 +85,12 @@ export const MemberQuotaWidget: React.FC<MemberQuotaWidgetProps> = ({
             Seat Placement
           </span>
           <Badge variant={isMoved ? "danger" : "success"}>
-            {isMoved ? "OUT OF SEAT" : "COMPLIANT"}
+            {isMoved ? (seatInfo?.occupied === false || seatInfo?.status === "Absent" ? "NOT SEATED" : "OUT OF SEAT") : "COMPLIANT"}
           </Badge>
         </div>
         <div className="text-xl font-black font-mono text-slate-100 flex items-center gap-1.5">
-          <ShieldCheck className="w-5 h-5 text-emerald-400" />
-          <span>{isMoved ? "Moved Zone" : "At Bench"}</span>
+          <ShieldCheck className={`w-5 h-5 ${isMoved ? "text-rose-400" : "text-emerald-400"}`} />
+          <span>{isMoved ? (seatInfo?.occupied === false || seatInfo?.status === "Absent" ? "Not Seated" : "Moved Zone") : "At Bench"}</span>
         </div>
         <p className="text-[10px] text-slate-400">
           Physical bench vision compliance tracking.
