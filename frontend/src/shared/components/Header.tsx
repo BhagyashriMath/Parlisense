@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 
 
+import { unlockChamberAudio } from "../utils/chamberAudio";
+
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -337,7 +339,13 @@ export function Header() {
             {/* Mute Audio Alerts */}
             <button
               id="mute-toggle-btn"
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={() => {
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                if (!nextMuted) {
+                  unlockChamberAudio(true);
+                }
+              }}
               className="p-1.5 text-slate-400 hover:text-slate-100 bg-slate-900 rounded-lg border border-slate-800 transition-colors shadow-sm cursor-pointer"
               title={isMuted ? "Unmute sound alerts" : "Mute sound alerts"}
             >
@@ -385,7 +393,13 @@ export function Header() {
 
             {/* Mute Quick Toggle */}
             <button
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={() => {
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                if (!nextMuted) {
+                  unlockChamberAudio(true);
+                }
+              }}
               className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
               title={isMuted ? "Unmute" : "Mute"}
             >

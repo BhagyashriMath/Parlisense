@@ -364,16 +364,10 @@ export function useMemberViewModel() {
     seatInfo?.movementStatus?.includes("Absent") ||
     seatInfo?.status?.includes("Moved");
 
-  // Strictly enforce single-speaker rule:
-  // Only the member who holds the floor (isSpeaking === true) is allowed to speak.
-  // When recognized by the Speaker, their microphone is automatically activated.
-  // When not holding the floor (or floor yielded to another member, or session paused/ended),
-  // their microphone is immediately deactivated/muted.
+  // When recognized by the Speaker, automatically activate the microphone
   useEffect(() => {
     if (isSpeaking) {
       setIsMicActive(true);
-    } else {
-      setIsMicActive(false);
     }
   }, [isSpeaking, setIsMicActive]);
   const allocatedSeconds = currentMember.allocated_time_seconds || 300;

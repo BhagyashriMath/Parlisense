@@ -293,3 +293,5 @@
 {"id":"AUD-1792004671359-o7hqe","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:31.359Z","sessionId":null,"payload":{"member_id":"M001","reason":"Medical Emergency at Desk"}}
 {"id":"AUD-1792004697729-aka3a","type":"EMERGENCY_EXIT_REQUESTED","timestamp":"2026-10-14T19:04:57.729Z","sessionId":null,"payload":{"member_id":"M002","reason":"Urgent Family Matter"}}
 {"id":"AUD-1792005960251-o1biy","type":"MEMBER_UPDATED","timestamp":"2026-10-14T19:26:00.251Z","sessionId":null,"payload":{"member_id":"M001","updates":{"warnings_count":0,"violations_count":4}}}
+{"id":"AUD-1792009867110-eiev2","type":"SESSION_STOPPED","timestamp":"2026-10-14T20:31:07.110Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792004392239"}}
+{"id":"AUD-1792009870298-85qv7","type":"SESSION_STARTED","timestamp":"2026-10-14T20:31:10.298Z","sessionId":null,"payload":{"session_id":"PAR-2026-1792009870116"}}

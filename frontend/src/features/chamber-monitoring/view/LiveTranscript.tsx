@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useParliament } from "../../../infrastructure/context/ParliamentContext";
 import { MessageSquareText, Sparkles } from "lucide-react";
 
@@ -51,9 +51,7 @@ export function LiveTranscript({ textOnly = false }: LiveTranscriptProps) {
   const flaggedWords = telemetry?.ai_output?.flagged_words || [];
   const transcripts = telemetry?.recent_transcripts || [];
 
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [transcripts, interimTranscript]);
+
 
   const filtered = transcripts.filter((t) =>
     t.text.toLowerCase().includes(filterText.toLowerCase())

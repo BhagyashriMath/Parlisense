@@ -88,7 +88,7 @@ export function MemberDashboard() {
   }
 
   return (
-    <div id="member-dashboard-view" className="h-full flex-1 min-h-0 flex flex-col gap-2 overflow-hidden text-slate-200">
+    <div id="member-dashboard-view" className="h-full flex-1 min-h-0 flex flex-col gap-2 overflow-hidden text-slate-200 pr-1">
       {/* Sitting Scheduled Banner */}
       {!sessionActive && telemetry?.scheduled_session?.status === "SCHEDULED" && (
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-indigo-500/50 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-md flex-shrink-0">
@@ -297,10 +297,10 @@ export function MemberDashboard() {
       </div>
 
       {/* 2. Main Workspace Layout */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 overflow-hidden">
-        {/* Left Column: Camera Feed + STT (6 cols) */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 overflow-hidden">
+        {/* Left Column: Camera Feed + Chamber Feeds + STT (6 cols) */}
         <div
-          className={`lg:col-span-6 flex flex-col gap-2 min-h-0 overflow-hidden ${
+          className={`lg:col-span-6 flex flex-col gap-3 min-h-0 overflow-y-auto pr-1.5 ${
             activeMobileView === "feed" ? "flex-1 min-h-[340px]" : "hidden lg:flex"
           }`}
         >
@@ -315,19 +315,19 @@ export function MemberDashboard() {
           </div>
 
           {/* Multi-Participant Chamber Video Feeds (Speaker + All Members) */}
-          <div className="flex-1 min-h-0">
+          <div className="min-h-[290px] h-[300px] flex-shrink-0 rounded-xl overflow-hidden shadow-sm">
             <ChamberVideoGrid />
           </div>
 
           {/* Live Transcript */}
-          <div className="h-56 flex-shrink-0 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-sm flex flex-col">
+          <div className="min-h-[220px] h-56 flex-shrink-0 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-sm flex flex-col">
             <LiveTranscript textOnly={true} />
           </div>
         </div>
 
         {/* Right Column: Quotas, Disciplinary Alerts & Scorecard Summary (6 cols) */}
         <div
-          className={`lg:col-span-6 flex flex-col gap-2 min-h-0 overflow-y-auto pr-1 ${
+          className={`lg:col-span-6 flex flex-col gap-3 min-h-0 overflow-y-auto pr-1.5 ${
             activeMobileView === "quota" ? "flex-1 min-h-[340px]" : "hidden lg:flex"
           }`}
         >

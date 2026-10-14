@@ -42,7 +42,7 @@ export class AiController {
       });
     }
     let transcript;
-    if (typeof transcript_snippet === "string" && transcript_snippet.trim().length > 3) {
+    if (typeof transcript_snippet === "string" && transcript_snippet.trim().length >= 2) {
       const activeSpeakerId = telemetryService.getState().activeSpeakerId;
       const user = req.user;
       const isUserSpeaker = user?.role === "speaker";
@@ -64,16 +64,12 @@ export class AiController {
           role: "Speaker"
         };
       } else {
-        // Floor Member: strictly enforce single-speaker rule
-        if (!activeSpeakerId) {
-          res.json({ status: "NO_ACTIVE_SPEAKER_RECOGNIZED" });
-          return;
+        // Floor Member: resolve speaking member from member_id or activeSpeakerId
+        const resolvedId = member_id || activeSpeakerId;
+        speakingMember = resolvedId ? await memberService.getById(resolvedId) : null;
+        if (!speakingMember) {
+          speakingMember = memberService.getCachedAll()[0];
         }
-        if (member_id && member_id !== activeSpeakerId) {
-          res.status(403).json({ status: "UNAUTHORIZED_SPEAKER_BLOCKED", message: "Only the recognized floor speaker may address the House." });
-          return;
-        }
-        speakingMember = await memberService.getById(activeSpeakerId) || memberService.getCachedAll()[0];
       }
 
       if (speakingMember) {

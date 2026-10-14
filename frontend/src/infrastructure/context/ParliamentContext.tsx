@@ -174,8 +174,10 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const currentMemberId = currentUserRef.current?.memberId || selectedMemberIdRef.current;
       const isUserSpeaker = currentUserRef.current?.role === "speaker";
+      const currentMemberId = isUserSpeaker
+        ? (currentUserRef.current?.memberId || "SP001")
+        : (currentUserRef.current?.memberId || selectedMemberIdRef.current);
 
       // 1. Live Floor Speech Audio Playback:
       // When a member or speaker delivers floor speech and STT publishes a transcript snippet,
@@ -184,17 +186,23 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
         if (!seenTranscriptIds.has(t.id)) {
           seenTranscriptIds.add(t.id);
 
-          const isSelf =
-            (currentMemberId && t.member_id === currentMemberId) ||
-            (isUserSpeaker && (t.member_id?.startsWith("SP") || t.seat_id === "CHAMBER-DAIS" || t.name?.toLowerCase().includes("speaker")));
+          const isTranscriptFromSpeaker =
+            t.member_id?.startsWith("SP") ||
+            t.seat_id === "CHAMBER-DAIS" ||
+            t.name?.toLowerCase().includes("speaker");
 
-          if (!isSelf && t.text && t.text.trim().length > 1) {
-            const isSpeakerRole =
-              t.member_id?.startsWith("SP") ||
-              t.seat_id?.includes("DAIS") ||
-              t.name?.toLowerCase().includes("speaker");
+          // Determine if this transcript was spoken by the current user themselves
+          let isSelf = false;
+          if (isUserSpeaker) {
+            // Speaker ignores their own speech to avoid feedback
+            isSelf = isTranscriptFromSpeaker;
+          } else {
+            // Member ignores their own member ID's speech
+            isSelf = !isTranscriptFromSpeaker && !!currentMemberId && t.member_id === currentMemberId;
+          }
 
-            speakFloorSpeech(t.text, t.member_id, t.name, isSpeakerRole);
+          if (!isSelf && t.text && t.text.trim().length >= 2) {
+            speakFloorSpeech(t.text, t.member_id, t.name, isTranscriptFromSpeaker);
           }
         }
       });
@@ -300,16 +308,12 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
               const text = event.results[i][0].transcript.trim();
               if (event.results[i].isFinal) {
                 if (text.length >= 2) {
-                  const activeFloorMemberId = telemetryRef.current?.active_speaker?.member_id;
                   const isUserSpeakerRole = currentUserRef.current?.role === "speaker";
                   const currentMemberId = isUserSpeakerRole
                     ? (currentUserRef.current?.memberId || "SP001")
                     : (currentUserRef.current?.memberId || selectedMemberIdRef.current);
-                  const hasFloorPermission = isUserSpeakerRole || (!!activeFloorMemberId && currentMemberId === activeFloorMemberId);
 
-                  if (hasFloorPermission) {
-                    sendAudioTelemetry(0, text, currentMemberId).catch(() => {});
-                  }
+                  sendAudioTelemetry(0, text, currentMemberId).catch(() => {});
                 }
               } else interim += text;
             }
