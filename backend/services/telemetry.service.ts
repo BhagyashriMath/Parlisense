@@ -55,6 +55,7 @@ export class TelemetryService {
   private triggeredSpeakerAlerts: Set<string> = new Set();
   private lastAlertTimestamps: Record<string, number> = {};
   private disciplinaryEventKeys = new Set<string>();
+  private lastOffensiveTranscriptId: string = "";
 
   constructor() {
     this.state = {
@@ -316,8 +317,11 @@ export class TelemetryService {
     }
 
     const recentTranscripts = transcriptRepository.getCachedRecent(8, this.state.sessionId);
-    const latestTranscriptText = recentTranscripts.length > 0
-      ? recentTranscripts[recentTranscripts.length - 1].text
+    const latestTranscript = recentTranscripts.length > 0
+      ? recentTranscripts[recentTranscripts.length - 1]
+      : null;
+    const latestTranscriptText = latestTranscript
+      ? latestTranscript.text
       : "Honourable Speaker, the digital education mission requires immediate budgetary allocation.";
 
     const agendaRes = aiService.analyzeSpeechRelevance(latestTranscriptText);
@@ -326,12 +330,19 @@ export class TelemetryService {
     const hasWellRush = Object.values(this.state.seatMovementStates).some((s) => s.movementStatus.includes("Well Rush"));
     const isMultipleSpeakers = this.state.forcedEvent === "MULTIPLE_SPEAKERS";
 
+    // Resolve speaker who delivered the latest transcript
+    const transcriptMember = latestTranscript?.member_id
+      ? memberService.getCachedMember(latestTranscript.member_id) ||
+        memberService.getCachedAll().find((m) => m.member_id === latestTranscript.member_id)
+      : null;
+    const effectiveSpeakingMember = transcriptMember || activeMember;
+
     const aiOutput = {
       timestamp: nowStr,
       session_id: this.state.sessionId,
-      member_id: hasActiveSpeaker ? activeMember.member_id : "",
-      seat_id: hasActiveSpeaker ? activeMember.seat_id : "",
-      member_name: hasActiveSpeaker ? activeMember.name : "",
+      member_id: hasActiveSpeaker ? activeMember.member_id : (effectiveSpeakingMember?.member_id || ""),
+      seat_id: hasActiveSpeaker ? activeMember.seat_id : (effectiveSpeakingMember?.seat_id || ""),
+      member_name: hasActiveSpeaker ? activeMember.name : (effectiveSpeakingMember?.name || ""),
       transcript: latestTranscriptText,
       speaking_time: this.state.isActive && hasActiveSpeaker ? speakingTime : 0,
       allocated_time: hasActiveSpeaker ? (activeMember.allocated_time_seconds || 300) : 0,
@@ -351,6 +362,46 @@ export class TelemetryService {
       movement_status: this.state.seatMovementStates[activeMember.seat_id]?.movementStatus || "Normal",
       emergency: this.state.emergencyActive
     };
+
+    // Unparliamentary Language Rule Evaluation:
+    // Triggers whenever unparliamentary language is spoken by ANY member or participant in the chamber,
+    // regardless of whether the chair has formally recognized activeSpeakerId.
+    const isOffensiveEvent = this.state.forcedEvent === "OFFENSIVE";
+    const isNewOffensiveSnippet = Boolean(
+      latestTranscript &&
+      offensiveRes.isOffensive &&
+      this.lastOffensiveTranscriptId !== latestTranscript.id
+    );
+
+    if (isLiveActive && (isNewOffensiveSnippet || (isOffensiveEvent && !this.shouldThrottle("RULE_5_OFFENSIVE_LANGUAGE", 6000)))) {
+      if (latestTranscript) {
+        this.lastOffensiveTranscriptId = latestTranscript.id;
+      }
+      this.shouldThrottle("RULE_5_OFFENSIVE_LANGUAGE", 6000);
+
+      const offender = effectiveSpeakingMember;
+      const alertId = `ALT-OFF-${Date.now()}`;
+      const wordList = offensiveRes.flaggedWords.length > 0
+        ? ` ('${offensiveRes.flaggedWords.join(", ")}')`
+        : "";
+      alertRepository.save({
+        alert_id: alertId,
+        session_id: this.state.sessionId,
+        member_id: offender.member_id,
+        seat_id: offender.seat_id,
+        rule_id: "RULE_5_OFFENSIVE_LANGUAGE",
+        type: "UNPARLIAMENTARY_LANGUAGE",
+        severity: "CRITICAL",
+        alert_level: 3,
+        title: "Unparliamentary Language Detected",
+        description: `Offensive or expungable remark${wordList} detected from ${offender.name}. Rule Engine recommends suspension review.`,
+        member_audio_message: "You have used unparliamentary language. This has been recorded. Please maintain decorum.",
+        suspension_recommended: true,
+        source_module: "NLP Lexical Analyzer",
+        status: "ACTIVE"
+      });
+      this.recordDisciplinaryEvent(offender, alertId, "OFFENSIVE_LANGUAGE", 10);
+    }
 
     if (isLiveActive && this.state.activeSpeakerId) {
       this.evaluateRules(aiOutput, activeMember, clock.memberSeconds[activeMember.member_id] ?? speakingTime, nowStr, emotionRes, hasWellRush);
@@ -441,27 +492,7 @@ export class TelemetryService {
       });
     }
 
-    if (aiOutput.offensive && !this.shouldThrottle("RULE_5_OFFENSIVE_LANGUAGE", 30000)) {
-      const alertId = `ALT-OFF-${Date.now()}`;
-      const wordList = aiOutput.flagged_words.length > 0 ? ` ('${aiOutput.flagged_words.join(", ")}')` : "";
-      alertRepository.save({
-        alert_id: alertId,
-        session_id: this.state.sessionId,
-        member_id: activeMember.member_id,
-        seat_id: activeMember.seat_id,
-        rule_id: "RULE_5_OFFENSIVE_LANGUAGE",
-        type: "UNPARLIAMENTARY_LANGUAGE",
-        severity: "CRITICAL",
-        alert_level: 3,
-        title: "Unparliamentary Language Detected",
-        description: `Offensive or expungable remark${wordList} detected. Rule Engine recommends suspension review.`,
-        member_audio_message: "You have used unparliamentary language. This has been recorded. Please maintain decorum.",
-        suspension_recommended: true,
-        source_module: "NLP Lexical Analyzer",
-        status: "ACTIVE"
-      });
-      this.recordDisciplinaryEvent(activeMember, alertId, "OFFENSIVE_LANGUAGE", 10);
-    }
+
 
     if (aiOutput.agenda_relevance < (rulesConfig?.thresholds?.agenda_similarity_min || 0.45) && speakingTime > 15 && !this.shouldThrottle("RULE_3_OFF_TOPIC", 30000)) {
       const alertId = `ALT-TOP-${Date.now()}`;

@@ -216,14 +216,18 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
 
           const isTargetedToMe = !a.member_id || a.member_id === currentMemberId || a.seat_id === currentMemberId;
           const isChamberWide = !a.member_id && !a.seat_id;
-          const shouldPlayForUser = isTargetedToMe || isChamberWide || isUserSpeaker;
+          const isOffensiveAlert = a.rule_id === "RULE_5_OFFENSIVE_LANGUAGE" || a.type === "UNPARLIAMENTARY_LANGUAGE";
+          const shouldPlayForUser = isTargetedToMe || isChamberWide || isUserSpeaker || isOffensiveAlert;
 
           if (shouldPlayForUser) {
             playChamberAlertChime(a.severity);
             const alertMsg = a.member_audio_message || a.description || a.title;
             if (alertMsg) {
               const isCritical = a.severity === "CRITICAL" || a.severity === "HIGH";
-              speakAlert(alertMsg, a.rule_id || a.type || "alert", isCritical);
+              // Offset slightly so the chime alert plays first before the voice warning speaks
+              setTimeout(() => {
+                speakAlert(alertMsg, a.rule_id || a.type || "alert", isCritical);
+              }, 220);
             }
           }
         }
@@ -233,7 +237,7 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Real-time microphone: dB analyser + Web Speech API STT
+  // Real-time microphone: dB analyser + continuous Web Speech API STT
   useEffect(() => {
     if (!isMicActive) return;
 
@@ -248,16 +252,6 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    const startRecognition = () => {
-      if (cancelled || recognitionRunning || !recognition) return;
-      try {
-        recognition.start();
-        recognitionRunning = true;
-      } catch (_) {
-        recognitionRunning = false;
-      }
-    };
-
     const stopRecognition = () => {
       if (restartTimer) {
         clearTimeout(restartTimer);
@@ -265,7 +259,104 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
       }
       if (recognition) {
         recognitionRunning = false;
-        try { recognition.stop(); } catch (_) {}
+        try {
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+          recognition.abort();
+        } catch (_) {}
+        recognition = null;
+      }
+    };
+
+    const initAndStartRecognition = () => {
+      if (cancelled || !micActiveRef.current || !SpeechRecognitionAPI) return;
+
+      if (restartTimer) {
+        clearTimeout(restartTimer);
+        restartTimer = null;
+      }
+
+      // Clean up previous instance before instantiating a fresh one
+      if (recognition) {
+        try {
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+          recognition.abort();
+        } catch (_) {}
+        recognition = null;
+      }
+
+      recognitionRunning = false;
+
+      try {
+        const inst = new SpeechRecognitionAPI();
+        inst.continuous = true;
+        inst.interimResults = true;
+        inst.lang = "en-IN";
+        inst.maxAlternatives = 1;
+
+        inst.onresult = (event: any) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const text = event.results[i][0].transcript.trim();
+            if (event.results[i].isFinal) {
+              if (text.length >= 2) {
+                // Ignore the system's own decorum alert if picked up by the mic
+                const lower = text.toLowerCase();
+                const isSystemAlertEcho =
+                  lower.includes("unparliamentary language") ||
+                  lower.includes("maintain decorum") ||
+                  lower.includes("this has been recorded");
+
+                if (!isSystemAlertEcho) {
+                  const isUserSpeakerRole = currentUserRef.current?.role === "speaker";
+                  const currentMemberId = isUserSpeakerRole
+                    ? (currentUserRef.current?.memberId || "SP001")
+                    : (currentUserRef.current?.memberId || selectedMemberIdRef.current);
+
+                  sendAudioTelemetry(0, text, currentMemberId).catch(() => {});
+                }
+              }
+            } else {
+              interim += text;
+            }
+          }
+          if (!cancelled) setInterimTranscript(interim);
+        };
+
+        inst.onerror = (e: any) => {
+          recognitionRunning = false;
+          if (cancelled || !micActiveRef.current) return;
+          // Fatal permission denied in browser prompt
+          if (e.error === "not-allowed") {
+            console.warn("Speech recognition permission denied by user");
+            return;
+          }
+          // For all other errors (aborted, no-speech, network, audio-capture, etc.):
+          // Re-arm cleanly with a fresh instance
+          if (restartTimer) clearTimeout(restartTimer);
+          restartTimer = setTimeout(initAndStartRecognition, 250);
+        };
+
+        inst.onend = () => {
+          recognitionRunning = false;
+          if (!cancelled && micActiveRef.current) {
+            if (restartTimer) clearTimeout(restartTimer);
+            restartTimer = setTimeout(initAndStartRecognition, 200);
+          }
+        };
+
+        recognition = inst;
+        inst.start();
+        recognitionRunning = true;
+      } catch (err) {
+        recognitionRunning = false;
+        if (!cancelled && micActiveRef.current) {
+          if (restartTimer) clearTimeout(restartTimer);
+          restartTimer = setTimeout(initAndStartRecognition, 350);
+        }
       }
     };
 
@@ -297,47 +388,7 @@ export function ParliamentProvider({ children }: { children: ReactNode }) {
         }, 300);
 
         if (SpeechRecognitionAPI) {
-          recognition = new SpeechRecognitionAPI();
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          recognition.lang = "en-IN";
-          recognition.maxAlternatives = 1;
-
-          recognition.onresult = (event: any) => {
-            let interim = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const text = event.results[i][0].transcript.trim();
-              if (event.results[i].isFinal) {
-                if (text.length >= 2) {
-                  const isUserSpeakerRole = currentUserRef.current?.role === "speaker";
-                  const currentMemberId = isUserSpeakerRole
-                    ? (currentUserRef.current?.memberId || "SP001")
-                    : (currentUserRef.current?.memberId || selectedMemberIdRef.current);
-
-                  sendAudioTelemetry(0, text, currentMemberId).catch(() => {});
-                }
-              } else interim += text;
-            }
-            if (!cancelled) setInterimTranscript(interim);
-          };
-
-          recognition.onerror = (e: any) => {
-            recognitionRunning = false;
-            if (e.error !== "aborted" && e.error !== "not-allowed" && !cancelled) {
-              if (restartTimer) clearTimeout(restartTimer);
-              restartTimer = setTimeout(startRecognition, 350);
-            }
-          };
-
-          recognition.onend = () => {
-            recognitionRunning = false;
-            if (!cancelled && micActiveRef.current) {
-              if (restartTimer) clearTimeout(restartTimer);
-              restartTimer = setTimeout(startRecognition, 350);
-            }
-          };
-
-          startRecognition();
+          initAndStartRecognition();
         } else {
           console.warn("Web Speech API not supported in this browser. Chrome recommended.");
         }

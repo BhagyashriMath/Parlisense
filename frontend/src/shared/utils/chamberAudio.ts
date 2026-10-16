@@ -249,13 +249,27 @@ export function speakAlert(
   };
 
   if (isUrgent) {
-    try {
-      window.speechSynthesis.cancel();
-      activeUtterances.clear();
-      floorSpeechQueue.length = 0;
-    } catch (_) {}
-    // Delay slightly to prevent Chromium bug where cancel() immediately cancels the next speak()
-    setTimeout(executeSpeak, 50);
+    const isCurrentlySpeaking =
+      typeof window !== "undefined" &&
+      "speechSynthesis" in window &&
+      (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+
+    if (isCurrentlySpeaking) {
+      try {
+        window.speechSynthesis.cancel();
+        activeUtterances.clear();
+        floorSpeechQueue.length = 0;
+      } catch (_) {}
+      // Allow Chromium audio pipeline time to flush cancel state before speaking
+      setTimeout(() => {
+        try {
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        } catch (_) {}
+        executeSpeak();
+      }, 150);
+    } else {
+      executeSpeak();
+    }
   } else {
     executeSpeak();
   }
